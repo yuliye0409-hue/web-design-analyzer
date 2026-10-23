@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertPublicTarget, interactionDelta } from '../analyzer.mjs';
-import { observationSpec } from '../interaction-observations.mjs';
+import { filterKnowledge, knowledgeEntries } from '../knowledge-library.mjs';
 
 test('reference analyzer accepts public HTTP(S) URLs', async () => {
   assert.equal(await assertPublicTarget('https://example.com/path'), 'https://example.com/path');
@@ -33,23 +33,15 @@ test('interaction evidence reports state, visual, direction, and CSS timing chan
   assert.match(delta.motion, /transform none→matrix/);
 });
 
-test('manual observations become prompt-ready interaction requirements', () => {
-  const spec = observationSpec({
-    trigger: 'hover',
-    module: '作品展示',
-    target: '作品卡片',
-    condition: '鼠标移入卡片',
-    before: '图片正常显示',
-    after: '遮罩和标题淡入',
-    direction: '标题向上 8px',
-    timing: '240ms',
-    easing: 'ease-out',
-  });
-  assert.match(spec, /悬停/);
-  assert.match(spec, /触发条件：鼠标移入卡片/);
-  assert.match(spec, /触发前：图片正常显示/);
-  assert.match(spec, /触发后：遮罩和标题淡入/);
-  assert.match(spec, /动效方向：标题向上 8px/);
-  assert.match(spec, /时长\/节奏：240ms/);
-  assert.match(spec, /缓动：ease-out/);
+test('knowledge search matches terms, definitions, and examples', () => {
+  assert.deepEqual(filterKnowledge(knowledgeEntries,{query:'ease'}),[]);
+  assert.deepEqual(filterKnowledge(knowledgeEntries,{query:'触屏'}).map(item=>item.id),['tooltip','hit-target']);
+  assert.deepEqual(filterKnowledge(knowledgeEntries,{query:'Tooltip'}).map(item=>item.id),['tooltip']);
+});
+
+test('knowledge filters combine category, query, and saved favorites', () => {
+  const favorites = new Set(['tooltip','accordion','hit-target']);
+  assert.deepEqual(filterKnowledge(knowledgeEntries,{category:'interaction'}).map(item=>item.id),['tooltip','accordion','microinteraction']);
+  assert.deepEqual(filterKnowledge(knowledgeEntries,{category:'interaction',favoritesOnly:true,favorites}).map(item=>item.id),['tooltip','accordion']);
+  assert.deepEqual(filterKnowledge(knowledgeEntries,{favoritesOnly:true,favorites,query:'说明'}).map(item=>item.id),['tooltip']);
 });

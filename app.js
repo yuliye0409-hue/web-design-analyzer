@@ -1,4 +1,4 @@
-import { observationSpec, observationTriggerLabel } from './interaction-observations.mjs';
+import { filterKnowledge, knowledgeEntries } from './knowledge-library.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -14,13 +14,14 @@ const result = $('#result');
 const moduleList = $('[data-module-list]');
 const promptEditor = $('#prompt-output');
 const crawlEvidence = $('[data-crawl-evidence]');
-const observationList = $('[data-observation-list]');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let toastTimer;
 let modules = [];
 let generated = false;
 let taskMode = 'analyze-build';
-let manualObservations = [];
+let knowledgeCategory = 'all';
+let favoritesOnly = false;
+let knowledgeFavorites = new Set();
 let customAssets = [];
 let assetDbPromise;
 let assetsReadyResolve;
@@ -160,26 +161,48 @@ function renderModules() {
 function modulesFromUI() {
   return $$('.module-card',moduleList).map(card => Object.fromEntries($$('[data-field]',card).map(field => [field.dataset.field,field.value.trim()])));
 }
-function renderObservations() {
-  const triggerName = observationTriggerLabel;
-  observationList.innerHTML = manualObservations.map((item,index) => `<article class="observation-card" data-observation-index="${index}">
-    <div class="observation-card-head"><strong>${String(index+1).padStart(2,'0')} / ${triggerName(item.trigger)}观察</strong><button type="button" data-remove-observation aria-label="删除第 ${index+1} 条观察" title="删除记录">×</button></div>
-    <div class="observation-fields">
-      <label>所属模块<input data-observation-field="module" value="${esc(item.module || '')}" placeholder="例如：产品展示区"></label>
-      <label>目标元素<input data-observation-field="target" value="${esc(item.target || '')}" placeholder="例如：产品卡片 / 价格筛选"></label>
-      <label>触发条件<input data-observation-field="condition" value="${esc(item.condition || '')}" placeholder="例如：鼠标移入卡片"></label>
-      <label>动效方向<input data-observation-field="direction" value="${esc(item.direction || '')}" placeholder="例如：向上 4px / 淡入"></label>
-      <label class="observation-wide">触发前状态<textarea data-observation-field="before" placeholder="记录触发前的内容、颜色、位置或展开状态">${esc(item.before || '')}</textarea></label>
-      <label class="observation-wide">触发后状态<textarea data-observation-field="after" placeholder="记录触发后变化以及结束状态">${esc(item.after || '')}</textarea></label>
-      <label>动效时长 / 节奏<input data-observation-field="timing" value="${esc(item.timing || '')}" placeholder="例如：约 240ms，轻缓"></label>
-      <label>缓动 / 补充<input data-observation-field="easing" value="${esc(item.easing || '')}" placeholder="例如：ease-out / 先快后慢"></label>
-    </div>
-  </article>`).join('');
-  $('[data-observer-count]').textContent = manualObservations.length ? `已记录 ${manualObservations.length} 条人工观察` : '尚无手动观察记录';
-  const reference = $('#reference-url').value.trim();
-  const open = $('[data-open-reference]');
-  try { const url = new URL(reference); open.href = ['http:','https:'].includes(url.protocol) ? url.href : 'about:blank'; open.toggleAttribute('aria-disabled', !['http:','https:'].includes(url.protocol)); }
-  catch { open.href = 'about:blank'; open.toggleAttribute('aria-disabled', true); }
+const KNOWLEDGE_FAVORITES_KEY = 'web-design-knowledge-favorites-v1';
+function renderKnowledge() {
+  const query = $('[data-knowledge-search]').value;
+  const entries = filterKnowledge(knowledgeEntries,{ query, category:knowledgeCategory, favoritesOnly, favorites:knowledgeFavorites });
+  $('[data-knowledge-list]').innerHTML = entries.map(entry => {
+    const favorite = knowledgeFavorites.has(entry.id);
+    return `<article class="knowledge-card" data-knowledge-card="${entry.id}">
+      <div class="knowledge-card-top"><span class="knowledge-category">${esc(({interaction:'交互',visual:'视觉',responsive:'响应式',accessibility:'可访问性',structure:'信息组织'})[entry.category])}</span><button type="button" class="knowledge-favorite" data-toggle-favorite="${entry.id}" aria-label="${favorite?'取消收藏':'收藏'}：${esc(entry.title)}" aria-pressed="${favorite}" title="${favorite?'取消收藏':'收藏'}">${favorite?'★':'☆'}</button></div>
+      <div class="knowledge-card-main"><span class="term-symbol" aria-hidden="true">${entry.symbol}</span><div><h3>${esc(entry.title)}</h3><p>${esc(entry.description)}</p></div></div>
+      <details class="knowledge-example"><summary>查看需求示例</summary><p>${esc(entry.example)}</p></details>
+      <button type="button" class="text-button knowledge-apply" data-apply-knowledge="${entry.id}">加入分析观察 <span>↗</span></button>
+    </article>`;
+  }).join('');
+  $('[data-knowledge-count]').textContent = entries.length ? `显示 ${entries.length} / ${knowledgeEntries.length} 个知识点` : '没有匹配的知识点';
+  $('[data-knowledge-empty]').hidden = entries.length > 0;
+  $('[data-clear-knowledge-search]').hidden = !query;
+  $('[data-favorite-count]').textContent = String(knowledgeFavorites.size);
+  const favoriteButton = $('[data-favorites-toggle]');
+  favoriteButton.setAttribute('aria-pressed',String(favoritesOnly));
+  favoriteButton.classList.toggle('is-active',favoritesOnly);
+  $$('[data-knowledge-category]').forEach(button => {
+    const active = button.dataset.knowledgeCategory === knowledgeCategory;
+    button.setAttribute('aria-pressed',String(active));
+    button.classList.toggle('is-active',active);
+  });
+}
+function resetKnowledgeFilters() {
+  $('[data-knowledge-search]').value = '';
+  knowledgeCategory = 'all';
+  favoritesOnly = false;
+  renderKnowledge();
+}
+function applyKnowledgeExample(id) {
+  const entry = knowledgeEntries.find(item => item.id === id);
+  if (!entry) return;
+  const notes = $('#visual-notes');
+  const line = `${entry.title}：${entry.example}`;
+  if (!notes.value.includes(line)) notes.value = [notes.value.trim(),line].filter(Boolean).join('\n');
+  notes.dispatchEvent(new Event('input',{bubbles:true}));
+  navigate('analysis');
+  $('#visual-notes').focus();
+  notify('已加入网页分析观察，并同步到提示词');
 }
 function currentModeLabel() {
   return ({ 'analyze-build':'分析并搭建','build':'按现有分析搭建','analyze':'只分析网页' })[taskMode];
@@ -299,10 +322,7 @@ function buildPrompt() {
   const observationLine = data.visualNotes?.trim() ? data.visualNotes.trim() : '请先观察参考网页的实际视觉与内容，再归纳；若无法访问，向用户说明并基于页面目标提出有标注的建议。';
   const stack = $('#tech-stack').value.trim() || '先检查当前工作区结构及技术栈，优先沿用现有方案；若是空项目，再选择最简单可运行的实现。不要擅自添加依赖。';
   const extras = $('#extra-constraints').value.trim() || '所有区块内容、图片、色彩、顺序和开关应便于后续独立修改；不要加入没有业务依据的功能。';
-  const moduleSpecContent = modules.length ? modules.map((m,index) => { const manual = manualObservations.filter(item => item.module && item.module.trim().toLowerCase() === String(m.title || '').trim().toLowerCase()).map(observationSpec); const interaction = [m.interaction || '定义加载、悬停、点击、滚动、键盘/触屏及反馈状态',...manual].join('\n  - 人工观察补充：'); return `### ${String(index+1).padStart(2,'0')} ${m.title || '未命名模块'}\n- 模块目的：${m.purpose || '结合上下文定义并说明假设'}\n- 设计风格与排版：${m.style || '检查参考页的字体层级、色彩、栅格、间距、图片比例和区块边界'}\n- 组件与信息层级：${m.components || '列出真实内容、交互组件及其优先级'}\n- 动效与交互：${interaction}\n- 专业判断与实施建议：${m.analysis || '解释该模块解决的用户任务、设计取舍和实现注意事项'}`; }).join('\n\n') : '根据目标页面先提炼合理的模块层级，避免使用空洞的默认区块。';
-  const unassignedObservations = manualObservations.filter(item => !item.module || !modules.some(module => String(module.title || '').trim().toLowerCase() === item.module.trim().toLowerCase()));
-  const manualEvidence = unassignedObservations.length ? `\n\n## 尚未归类的人工交互记录\n${unassignedObservations.map((item,index) => `${index+1}. ${observationSpec(item)}`).join('\n')}\n请将这些记录归入最匹配的页面模块，不要遗漏。` : '';
-  const moduleSpec = `${moduleSpecContent}${manualEvidence}`;
+  const moduleSpec = modules.length ? modules.map((m,index) => `### ${String(index+1).padStart(2,'0')} ${m.title || '未命名模块'}\n- 模块目的：${m.purpose || '结合上下文定义并说明假设'}\n- 设计风格与排版：${m.style || '检查参考页的字体层级、色彩、栅格、间距、图片比例和区块边界'}\n- 组件与信息层级：${m.components || '列出真实内容、交互组件及其优先级'}\n- 动效与交互：${m.interaction || '定义加载、悬停、点击、滚动、键盘/触屏及反馈状态'}\n- 专业判断与实施建议：${m.analysis || '解释该模块解决的用户任务、设计取舍和实现注意事项'}`).join('\n\n') : '根据目标页面先提炼合理的模块层级，避免使用空洞的默认区块。';
   const ref = $('#reference-url').value.trim();
   const mode = taskMode === 'analyze' ? '本次只做分析，不写或修改代码。' : taskMode === 'build' ? '根据已整理的模块直接实现，不重复开展大范围竞品分析；如果参考页可访问，仍需先核对视觉方向。' : '先检查参考页面并完成结构化分析，再按分析落地网页；不要在分析前直接开始堆 UI。';
   const moduleAction = taskMode === 'analyze' ? '逐模块分析输出' : '模块搭建与交付';
@@ -324,7 +344,7 @@ function navigate(panel) {
   window.scrollTo({ top:0, behavior:reducedMotion.matches?'instant':'smooth' });
 }
 function saveState() {
-  const state = { input:currentInputs(), customBrief:$('#custom-brief').value, modules:generated ? modules : [], observations:manualObservations, generated, mode:taskMode, agent:$('#agent-name').value, stack:$('#tech-stack').value, extras:$('#extra-constraints').value, includeVibe:$('#include-vibehub').checked, includeDesign:$('#include-design-skill').checked, includeQuality:$('#include-quality-skill').checked, prompt:promptEditor.value };
+  const state = { input:currentInputs(), customBrief:$('#custom-brief').value, modules:generated ? modules : [], generated, mode:taskMode, agent:$('#agent-name').value, stack:$('#tech-stack').value, extras:$('#extra-constraints').value, includeVibe:$('#include-vibehub').checked, includeDesign:$('#include-design-skill').checked, includeQuality:$('#include-quality-skill').checked, prompt:promptEditor.value };
   try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); $('[data-save-status]').textContent='已自动保存'; }
   catch { $('[data-save-status]').textContent='本地保存不可用'; }
 }
@@ -342,11 +362,9 @@ function restoreState() {
     $('#include-quality-skill').checked = state.includeQuality !== false;
     taskMode = state.mode || 'analyze-build';
     modules = Array.isArray(state.modules) ? state.modules : [];
-    manualObservations = Array.isArray(state.observations) ? state.observations : [];
     generated = Boolean(state.generated && modules.length);
     if (generated) { renderModules(); result.hidden = false; $('[data-analysis-source]').textContent='已从本机恢复上次分析草稿'; }
     updatePreview(currentInputs());
-    renderObservations();
     if (state.prompt) promptEditor.value = state.prompt;
     updatePromptMeta();
     $$('.mode-card').forEach(button => { const active=button.dataset.mode===taskMode; button.classList.toggle('selected',active); button.setAttribute('aria-pressed',String(active)); });
@@ -424,7 +442,7 @@ form.addEventListener('submit', event => { event.preventDefault(); startAnalysis
 form.addEventListener('input', () => { updatePreview(currentInputs()); if (generated) buildPrompt(); else saveState(); });
 $$('[data-panel]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.dataset.panel); }));
 $$('[data-load-demo]').forEach(button => button.addEventListener('click', loadDemo));
-$$('[data-clear-url]').forEach(button => button.addEventListener('click', () => { $('#reference-url').value=''; updatePreview(currentInputs()); renderObservations(); buildPrompt(); $('#reference-url').focus(); }));
+$$('[data-clear-url]').forEach(button => button.addEventListener('click', () => { $('#reference-url').value=''; updatePreview(currentInputs()); buildPrompt(); $('#reference-url').focus(); }));
 $('[data-close-result]').addEventListener('click', () => { result.hidden=true; });
 $('[data-reset-modules]').addEventListener('click', () => { modules=moduleDefaults(titleCase($('#page-type').value)); renderModules(); notify('已恢复此页面类型的建议模块'); });
 $('[data-add-module]').addEventListener('click', () => { modules=modulesFromUI(); modules.push({ title:'新增内容模块',purpose:'说明此模块帮助用户理解或完成什么。',components:'列出要呈现的内容、文字或组件。',interaction:'说明点击、展开或提交之后的可见结果。' }); renderModules(); $('.module-title-input',moduleList.lastElementChild).focus(); });
@@ -437,23 +455,24 @@ $('[data-guide-copy]').addEventListener('click', async () => {
   catch { notify('浏览器未开放剪贴板；请按 SOP 逐步操作'); }
 });
 moduleList.addEventListener('input', () => { modules=modulesFromUI(); buildPrompt(); });
-$$('[data-add-observation]').forEach(button => button.addEventListener('click', () => {
-  manualObservations.push({ trigger:button.dataset.addObservation,module:modulesFromUI()[0]?.title || '',target:'',condition:'',before:'',after:'',direction:'',timing:'',easing:'' });
-  renderObservations(); buildPrompt();
-  $('[data-observation-field="target"]',observationList.lastElementChild)?.focus();
+$('[data-knowledge-search]').addEventListener('input',renderKnowledge);
+$('[data-clear-knowledge-search]').addEventListener('click',() => { $('[data-knowledge-search]').value=''; renderKnowledge(); $('[data-knowledge-search]').focus(); });
+$$('[data-knowledge-category]').forEach(button => button.addEventListener('click',() => { knowledgeCategory=button.dataset.knowledgeCategory; renderKnowledge(); }));
+$('[data-favorites-toggle]').addEventListener('click',() => { favoritesOnly=!favoritesOnly; renderKnowledge(); });
+$$('[data-reset-knowledge], [data-reset-knowledge-empty]').forEach(button => button.addEventListener('click',resetKnowledgeFilters));
+$$('[data-knowledge-list]').forEach(list => list.addEventListener('click',event => {
+  const favoriteButton=event.target.closest('[data-toggle-favorite]');
+  if(favoriteButton){
+    const id=favoriteButton.dataset.toggleFavorite;
+    if(knowledgeFavorites.has(id))knowledgeFavorites.delete(id);else knowledgeFavorites.add(id);
+    try{localStorage.setItem(KNOWLEDGE_FAVORITES_KEY,JSON.stringify([...knowledgeFavorites]));}
+    catch{notify('浏览器无法保存收藏；当前筛选仍可使用');}
+    renderKnowledge();
+    return;
+  }
+  const applyButton=event.target.closest('[data-apply-knowledge]');
+  if(applyButton)applyKnowledgeExample(applyButton.dataset.applyKnowledge);
 }));
-observationList.addEventListener('input', event => {
-  const field=event.target.closest('[data-observation-field]');const card=event.target.closest('[data-observation-index]');if(!field||!card)return;
-  manualObservations[Number(card.dataset.observationIndex)][field.dataset.observationField]=field.value;
-  buildPrompt();
-});
-observationList.addEventListener('click', event => {
-  const button=event.target.closest('[data-remove-observation]');if(!button)return;
-  manualObservations.splice(Number(button.closest('[data-observation-index]').dataset.observationIndex),1);
-  renderObservations();buildPrompt();
-});
-$('[data-open-reference]').addEventListener('click', event => { if(event.currentTarget.getAttribute('aria-disabled')==='true'){event.preventDefault();notify('请先填写有效的 HTTP 或 HTTPS 参考网址');} });
-$('#reference-url').addEventListener('input', renderObservations);
 moduleList.addEventListener('click', event => {
   const card = event.target.closest('.module-card');
   if (!card) return;
@@ -528,8 +547,12 @@ $$('[data-help]').forEach(button => button.addEventListener('click', () => help.
 $$('[data-close-help]').forEach(button => button.addEventListener('click', () => help.close()));
 help.addEventListener('click',event => { if (event.target===help) help.close(); });
 window.addEventListener('hashchange', () => { const panel=location.hash.slice(1); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
+try {
+  const savedFavorites=JSON.parse(localStorage.getItem(KNOWLEDGE_FAVORITES_KEY)||'[]');
+  if(Array.isArray(savedFavorites))knowledgeFavorites=new Set(savedFavorites.filter(id=>knowledgeEntries.some(entry=>entry.id===id)));
+} catch { localStorage.removeItem(KNOWLEDGE_FAVORITES_KEY); }
 restoreState();
-renderObservations();
+renderKnowledge();
 const route=location.hash.slice(1);
 if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
