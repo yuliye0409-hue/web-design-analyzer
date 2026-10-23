@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertPublicTarget, interactionDelta } from '../analyzer.mjs';
+import { observationSpec } from '../interaction-observations.mjs';
 
 test('reference analyzer accepts public HTTP(S) URLs', async () => {
   assert.equal(await assertPublicTarget('https://example.com/path'), 'https://example.com/path');
@@ -30,4 +31,25 @@ test('interaction evidence reports state, visual, direction, and CSS timing chan
   assert.match(delta.change, /阴影发生变化/);
   assert.match(delta.motion, /0.3s \+ 0.05s ease-out/);
   assert.match(delta.motion, /transform none→matrix/);
+});
+
+test('manual observations become prompt-ready interaction requirements', () => {
+  const spec = observationSpec({
+    trigger: 'hover',
+    module: '作品展示',
+    target: '作品卡片',
+    condition: '鼠标移入卡片',
+    before: '图片正常显示',
+    after: '遮罩和标题淡入',
+    direction: '标题向上 8px',
+    timing: '240ms',
+    easing: 'ease-out',
+  });
+  assert.match(spec, /悬停/);
+  assert.match(spec, /触发条件：鼠标移入卡片/);
+  assert.match(spec, /触发前：图片正常显示/);
+  assert.match(spec, /触发后：遮罩和标题淡入/);
+  assert.match(spec, /动效方向：标题向上 8px/);
+  assert.match(spec, /时长\/节奏：240ms/);
+  assert.match(spec, /缓动：ease-out/);
 });

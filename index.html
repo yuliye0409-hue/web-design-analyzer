@@ -7,8 +7,8 @@
   <meta name="description" content="网页设计分析与跨 Agent 建站提示词工作台。拆解页面结构、组件、视觉和交互，生成可直接交给任意 Agent 的实施提示词。">
   <title>网页分析生成站 / 网页设计工作台</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  <link rel="stylesheet" href="./styles.css?v=dark-20261023-5">
-  <script defer src="./app.js"></script>
+  <link rel="stylesheet" href="./styles.css?v=dark-20261023-6">
+  <script type="module" src="./app.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">跳转到工作区</a>
@@ -93,6 +93,12 @@
         </div>
 
         <section class="crawl-evidence" data-crawl-evidence hidden aria-labelledby="evidence-title"><div class="evidence-heading"><div><span class="panel-index">LIVE PAGE EVIDENCE</span><h2 id="evidence-title">参考页面实采证据</h2><p data-evidence-summary></p></div><span class="evidence-status" data-evidence-status>浏览器实测</span></div><div class="evidence-grid"><figure><figcaption>DESKTOP / 1440 × 1000</figcaption><img data-evidence-desktop alt="参考网页桌面视口截图"></figure><figure><figcaption>MOBILE / 390 × 844</figcaption><img data-evidence-mobile alt="参考网页手机视口截图"></figure></div><ul class="evidence-warnings" data-evidence-warnings></ul></section>
+        <section class="manual-observer" aria-labelledby="observer-title">
+          <div class="observer-heading"><div><span class="panel-index">MANUAL INTERACTION REVIEW</span><h2 id="observer-title">手动交互观察记录</h2><p>在新标签页亲自悬停、点击或滚动参考网页，再记录触发与状态变化。记录会保存在本机并进入对应模块和建站提示词。</p></div><a class="small-button observer-open" data-open-reference href="https://example.com/" target="_blank" rel="noopener noreferrer">打开参考网页 ↗</a></div>
+          <div class="observer-toolbar"><span data-observer-count>尚无手动观察记录</span><div><button type="button" class="small-button" data-add-observation="hover">＋ 悬停</button><button type="button" class="small-button" data-add-observation="click">＋ 点击</button><button type="button" class="small-button" data-add-observation="scroll">＋ 滚动</button></div></div>
+          <div class="observer-list" data-observation-list></div>
+          <p class="observer-note">每条建议记录：在哪个模块、对什么元素、触发前后有什么变化；动效方向、时长和缓动可按观察结果填写。无法确认的内容留空并标注待确认。</p>
+        </section>
         <section class="analysis-result" id="result" aria-labelledby="result-title" hidden>
           <div class="result-top"><div><span class="panel-index">C / INDEPENDENT EDITABLE WORKSPACE</span><h2 id="result-title">逐模块专业分析 <span data-module-count>06</span></h2><p>真实网页证据与规则建议分开标注；未触发的交互不会冒充已验证。</p></div><button type="button" class="icon-button close-result" data-close-result aria-label="收起分析清单" title="收起">×</button></div>
           <div class="analysis-toolbar"><span class="analysis-source"><i></i><span data-analysis-source>基于你的目标与页面类型生成框架</span></span><div><button type="button" class="small-button" data-reset-modules>恢复建议模块</button><button type="button" class="small-button add-module" data-add-module>＋ 添加模块</button></div></div>

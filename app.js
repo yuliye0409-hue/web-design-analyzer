@@ -1,3 +1,5 @@
+import { observationSpec, observationTriggerLabel } from './interaction-observations.mjs';
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const STORAGE_KEY = 'web-design-analyzer-v1';
@@ -12,11 +14,13 @@ const result = $('#result');
 const moduleList = $('[data-module-list]');
 const promptEditor = $('#prompt-output');
 const crawlEvidence = $('[data-crawl-evidence]');
+const observationList = $('[data-observation-list]');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let toastTimer;
 let modules = [];
 let generated = false;
 let taskMode = 'analyze-build';
+let manualObservations = [];
 let customAssets = [];
 let assetDbPromise;
 let assetsReadyResolve;
@@ -156,6 +160,27 @@ function renderModules() {
 function modulesFromUI() {
   return $$('.module-card',moduleList).map(card => Object.fromEntries($$('[data-field]',card).map(field => [field.dataset.field,field.value.trim()])));
 }
+function renderObservations() {
+  const triggerName = observationTriggerLabel;
+  observationList.innerHTML = manualObservations.map((item,index) => `<article class="observation-card" data-observation-index="${index}">
+    <div class="observation-card-head"><strong>${String(index+1).padStart(2,'0')} / ${triggerName(item.trigger)}观察</strong><button type="button" data-remove-observation aria-label="删除第 ${index+1} 条观察" title="删除记录">×</button></div>
+    <div class="observation-fields">
+      <label>所属模块<input data-observation-field="module" value="${esc(item.module || '')}" placeholder="例如：产品展示区"></label>
+      <label>目标元素<input data-observation-field="target" value="${esc(item.target || '')}" placeholder="例如：产品卡片 / 价格筛选"></label>
+      <label>触发条件<input data-observation-field="condition" value="${esc(item.condition || '')}" placeholder="例如：鼠标移入卡片"></label>
+      <label>动效方向<input data-observation-field="direction" value="${esc(item.direction || '')}" placeholder="例如：向上 4px / 淡入"></label>
+      <label class="observation-wide">触发前状态<textarea data-observation-field="before" placeholder="记录触发前的内容、颜色、位置或展开状态">${esc(item.before || '')}</textarea></label>
+      <label class="observation-wide">触发后状态<textarea data-observation-field="after" placeholder="记录触发后变化以及结束状态">${esc(item.after || '')}</textarea></label>
+      <label>动效时长 / 节奏<input data-observation-field="timing" value="${esc(item.timing || '')}" placeholder="例如：约 240ms，轻缓"></label>
+      <label>缓动 / 补充<input data-observation-field="easing" value="${esc(item.easing || '')}" placeholder="例如：ease-out / 先快后慢"></label>
+    </div>
+  </article>`).join('');
+  $('[data-observer-count]').textContent = manualObservations.length ? `已记录 ${manualObservations.length} 条人工观察` : '尚无手动观察记录';
+  const reference = $('#reference-url').value.trim();
+  const open = $('[data-open-reference]');
+  try { const url = new URL(reference); open.href = ['http:','https:'].includes(url.protocol) ? url.href : 'about:blank'; open.toggleAttribute('aria-disabled', !['http:','https:'].includes(url.protocol)); }
+  catch { open.href = 'about:blank'; open.toggleAttribute('aria-disabled', true); }
+}
 function currentModeLabel() {
   return ({ 'analyze-build':'分析并搭建','build':'按现有分析搭建','analyze':'只分析网页' })[taskMode];
 }
@@ -274,14 +299,17 @@ function buildPrompt() {
   const observationLine = data.visualNotes?.trim() ? data.visualNotes.trim() : '请先观察参考网页的实际视觉与内容，再归纳；若无法访问，向用户说明并基于页面目标提出有标注的建议。';
   const stack = $('#tech-stack').value.trim() || '先检查当前工作区结构及技术栈，优先沿用现有方案；若是空项目，再选择最简单可运行的实现。不要擅自添加依赖。';
   const extras = $('#extra-constraints').value.trim() || '所有区块内容、图片、色彩、顺序和开关应便于后续独立修改；不要加入没有业务依据的功能。';
-  const moduleSpec = modules.length ? modules.map((m,index) => `### ${String(index+1).padStart(2,'0')} ${m.title || '未命名模块'}\n- 模块目的：${m.purpose || '结合上下文定义并说明假设'}\n- 设计风格与排版：${m.style || '检查参考页的字体层级、色彩、栅格、间距、图片比例和区块边界'}\n- 组件与信息层级：${m.components || '列出真实内容、交互组件及其优先级'}\n- 动效与交互：${m.interaction || '定义加载、悬停、点击、滚动、键盘/触屏及反馈状态'}\n- 专业判断与实现建议：${m.analysis || '解释该模块解决的用户任务、设计取舍和实现注意事项'}`).join('\n\n') : '根据目标页面先提炼合理的模块层级，避免使用空洞的默认区块。';
+  const moduleSpecContent = modules.length ? modules.map((m,index) => { const manual = manualObservations.filter(item => item.module && item.module.trim().toLowerCase() === String(m.title || '').trim().toLowerCase()).map(observationSpec); const interaction = [m.interaction || '定义加载、悬停、点击、滚动、键盘/触屏及反馈状态',...manual].join('\n  - 人工观察补充：'); return `### ${String(index+1).padStart(2,'0')} ${m.title || '未命名模块'}\n- 模块目的：${m.purpose || '结合上下文定义并说明假设'}\n- 设计风格与排版：${m.style || '检查参考页的字体层级、色彩、栅格、间距、图片比例和区块边界'}\n- 组件与信息层级：${m.components || '列出真实内容、交互组件及其优先级'}\n- 动效与交互：${interaction}\n- 专业判断与实施建议：${m.analysis || '解释该模块解决的用户任务、设计取舍和实现注意事项'}`; }).join('\n\n') : '根据目标页面先提炼合理的模块层级，避免使用空洞的默认区块。';
+  const unassignedObservations = manualObservations.filter(item => !item.module || !modules.some(module => String(module.title || '').trim().toLowerCase() === item.module.trim().toLowerCase()));
+  const manualEvidence = unassignedObservations.length ? `\n\n## 尚未归类的人工交互记录\n${unassignedObservations.map((item,index) => `${index+1}. ${observationSpec(item)}`).join('\n')}\n请将这些记录归入最匹配的页面模块，不要遗漏。` : '';
+  const moduleSpec = `${moduleSpecContent}${manualEvidence}`;
   const ref = $('#reference-url').value.trim();
   const mode = taskMode === 'analyze' ? '本次只做分析，不写或修改代码。' : taskMode === 'build' ? '根据已整理的模块直接实现，不重复开展大范围竞品分析；如果参考页可访问，仍需先核对视觉方向。' : '先检查参考页面并完成结构化分析，再按分析落地网页；不要在分析前直接开始堆 UI。';
   const moduleAction = taskMode === 'analyze' ? '逐模块分析输出' : '模块搭建与交付';
   const agentIntro = $('#agent-name').value.trim() ? `交付对象：${$('#agent-name').value.trim()}。` : '交付对象：任意具备网页浏览或代码能力的 AI Agent。';
   const prompt = `# 网页设计分析与搭建任务\n\n${agentIntro}\n任务方式：${currentModeLabel()}。${mode}\n\n## 项目目标\n- 页面类型：${titleCase(data.pageType)}\n- 目标用户：${audienceLine}\n- 页面主要目标：${goalLine}\n- 期望色调：${data.palette || '由参考网站决定'}\n- 设备适配：${data.responsive || '桌面与手机都适配'}\n- ${urlLine}\n- 用户观察：${observationLine}\n${customContentPrompt()}\n## 第一阶段：逐页检查参考网站\n${ref ? `请在你具备的浏览器或网页检查工具中打开并实际检查 ${ref}。先确认页面是否可访问，再遍历完整长页，按“导航/页头、首屏、每个内容区段、转化区、页脚”逐一编号，不可只分析首屏。` : '未提供参考网址。请根据目标页面类型和目标用户进行分析，并将基于常见模式的判断标注为建议，不得伪称是来源网站的事实。'}\n对于每个区段分别记录：①实际看到的内容及其目的；②布局、网格、对齐、留白、字体层级、色彩、图片比例/裁切和装饰风格；③组件职责和内容优先级；④进入视口、滚动、悬停、点击、切换、展开、加载时的动效曲线/方向/时长（只能描述能观察到的内容）；⑤桌面与移动端行为；⑥专业评价：有效之处、可用性或转化风险、可复用的设计原则和实施建议。区分“观察到的事实”“推断”“建议”，不确定处明确标注。\n如果你无法访问参考网页，请明确说明无法访问；不要编造页面内容。此时继续使用下方输入和假设，给出可执行的替代方案。不要尝试绕过登录或访问限制。\n\n## 第二阶段：输出完整设计分析\n1. 页面定位、受众、核心转化与主要用户路径。\n2. 全站信息架构及从首屏到页脚的模块顺序。\n3. 对每个实际存在的模块分别给出：模块目标、视觉风格/版式、组件与内容层级、动效/交互时序与触发、状态反馈、响应式变化、专业评估及可复用设计知识。\n4. 汇总交互矩阵：触发方式、反馈、键盘/触屏操作、加载/空/错误/成功状态。\n5. 汇总视觉规范：颜色（尽量给出可观察的色值/近似值并注明估算）、字体层级、网格、间距、图片比例、边框/圆角和动效原则。\n6. 列出移动端与桌面端差异、无障碍风险、性能风险、素材真实性风险。\n7. 提供可复用组件清单和方便后续改内容、图片、排序、显示开关的配置设计。\n\n## 第三阶段：${moduleAction}\n${moduleSpec}\n\n## 实施约束\n- 技术环境：${stack}\n- 其他要求：${extras}\n- 主要模块需独立成组件，并有便于非开发者调整文案、图片、主题、顺序和启用状态的配置入口。\n- 实现完整交互与状态，不要留下无行为的假按钮；动效需说明触发与结束状态，并支持减少动态效果设置。\n- 确保桌面、平板、手机布局可用且无横向溢出；图片具备替代文本和合理加载/失败后备。\n- 使用真实、可授权且相关的视觉素材；不将参考品牌素材误作用户自有资产。\n- 不引入不必要的库，不覆盖工作区未提交的用户改动；完成后运行现有检查并说明结果。\n- 严禁虚构客户、销量、评价、个人经历或业务数据；缺少事实时使用明确占位或询问。\n\n## 交付顺序\n先交逐模块专业分析，再简述信息架构和组件边界，之后实现；最后说明修改文件、模块编辑方式、运行/验证结果，以及尚未解决的假设或限制。${selectedSkillRules()}${termRules($('#include-vibehub').checked)}`;
   promptEditor.value = `${prompt}\n\n## 参考站交互复核与实现要求\n- 若具备浏览器，沿页面滚动观察视口变化和懒加载；检查常见控件的悬停状态，并仅对可恢复的手风琴、标签页、展开/按压和非表单勾选控件做点击前后对照。\n- 若工作台模块中已附交互实测证据，以该证据为依据列明触发条件、区域/控件、前后状态、可读取的 transition 时长/延迟/缓动及 transform/位置方向；候选数量不等于已验证效果。\n- 不提交表单，不触发购买、登录、删除等业务动作，不跟随普通外链。无法安全验证、未检测到差异或缺少浏览器时，明确标注“未实测/待人工确认”，不得臆造交互。\n- 生成页面时将已验证的触发方式和反馈状态转化为可访问的实际交互，兼顾键盘、触屏及 prefers-reduced-motion；对未实测部分说明实现假设。`;
-  $('[data-prompt-word-count]').textContent = `约 ${prompt.length.toLocaleString('zh-CN')} 字`;
+  $('[data-prompt-word-count]').textContent = `约 ${promptEditor.value.length.toLocaleString('zh-CN')} 字`;
   $('[data-prompt-ready]').textContent = generated ? '已同步最新模块' : '草稿：尚未生成模块分析';
   setProgress(generated ? taskMode === 'analyze' ? 2 : 3 : 1);
   saveState();
@@ -296,7 +324,7 @@ function navigate(panel) {
   window.scrollTo({ top:0, behavior:reducedMotion.matches?'instant':'smooth' });
 }
 function saveState() {
-  const state = { input:currentInputs(), customBrief:$('#custom-brief').value, modules:generated ? modules : [], generated, mode:taskMode, agent:$('#agent-name').value, stack:$('#tech-stack').value, extras:$('#extra-constraints').value, includeVibe:$('#include-vibehub').checked, includeDesign:$('#include-design-skill').checked, includeQuality:$('#include-quality-skill').checked, prompt:promptEditor.value };
+  const state = { input:currentInputs(), customBrief:$('#custom-brief').value, modules:generated ? modules : [], observations:manualObservations, generated, mode:taskMode, agent:$('#agent-name').value, stack:$('#tech-stack').value, extras:$('#extra-constraints').value, includeVibe:$('#include-vibehub').checked, includeDesign:$('#include-design-skill').checked, includeQuality:$('#include-quality-skill').checked, prompt:promptEditor.value };
   try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); $('[data-save-status]').textContent='已自动保存'; }
   catch { $('[data-save-status]').textContent='本地保存不可用'; }
 }
@@ -314,9 +342,11 @@ function restoreState() {
     $('#include-quality-skill').checked = state.includeQuality !== false;
     taskMode = state.mode || 'analyze-build';
     modules = Array.isArray(state.modules) ? state.modules : [];
+    manualObservations = Array.isArray(state.observations) ? state.observations : [];
     generated = Boolean(state.generated && modules.length);
     if (generated) { renderModules(); result.hidden = false; $('[data-analysis-source]').textContent='已从本机恢复上次分析草稿'; }
     updatePreview(currentInputs());
+    renderObservations();
     if (state.prompt) promptEditor.value = state.prompt;
     updatePromptMeta();
     $$('.mode-card').forEach(button => { const active=button.dataset.mode===taskMode; button.classList.toggle('selected',active); button.setAttribute('aria-pressed',String(active)); });
@@ -394,7 +424,7 @@ form.addEventListener('submit', event => { event.preventDefault(); startAnalysis
 form.addEventListener('input', () => { updatePreview(currentInputs()); if (generated) buildPrompt(); else saveState(); });
 $$('[data-panel]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.dataset.panel); }));
 $$('[data-load-demo]').forEach(button => button.addEventListener('click', loadDemo));
-$$('[data-clear-url]').forEach(button => button.addEventListener('click', () => { $('#reference-url').value=''; updatePreview(currentInputs()); buildPrompt(); $('#reference-url').focus(); }));
+$$('[data-clear-url]').forEach(button => button.addEventListener('click', () => { $('#reference-url').value=''; updatePreview(currentInputs()); renderObservations(); buildPrompt(); $('#reference-url').focus(); }));
 $('[data-close-result]').addEventListener('click', () => { result.hidden=true; });
 $('[data-reset-modules]').addEventListener('click', () => { modules=moduleDefaults(titleCase($('#page-type').value)); renderModules(); notify('已恢复此页面类型的建议模块'); });
 $('[data-add-module]').addEventListener('click', () => { modules=modulesFromUI(); modules.push({ title:'新增内容模块',purpose:'说明此模块帮助用户理解或完成什么。',components:'列出要呈现的内容、文字或组件。',interaction:'说明点击、展开或提交之后的可见结果。' }); renderModules(); $('.module-title-input',moduleList.lastElementChild).focus(); });
@@ -407,6 +437,23 @@ $('[data-guide-copy]').addEventListener('click', async () => {
   catch { notify('浏览器未开放剪贴板；请按 SOP 逐步操作'); }
 });
 moduleList.addEventListener('input', () => { modules=modulesFromUI(); buildPrompt(); });
+$$('[data-add-observation]').forEach(button => button.addEventListener('click', () => {
+  manualObservations.push({ trigger:button.dataset.addObservation,module:modulesFromUI()[0]?.title || '',target:'',condition:'',before:'',after:'',direction:'',timing:'',easing:'' });
+  renderObservations(); buildPrompt();
+  $('[data-observation-field="target"]',observationList.lastElementChild)?.focus();
+}));
+observationList.addEventListener('input', event => {
+  const field=event.target.closest('[data-observation-field]');const card=event.target.closest('[data-observation-index]');if(!field||!card)return;
+  manualObservations[Number(card.dataset.observationIndex)][field.dataset.observationField]=field.value;
+  buildPrompt();
+});
+observationList.addEventListener('click', event => {
+  const button=event.target.closest('[data-remove-observation]');if(!button)return;
+  manualObservations.splice(Number(button.closest('[data-observation-index]').dataset.observationIndex),1);
+  renderObservations();buildPrompt();
+});
+$('[data-open-reference]').addEventListener('click', event => { if(event.currentTarget.getAttribute('aria-disabled')==='true'){event.preventDefault();notify('请先填写有效的 HTTP 或 HTTPS 参考网址');} });
+$('#reference-url').addEventListener('input', renderObservations);
 moduleList.addEventListener('click', event => {
   const card = event.target.closest('.module-card');
   if (!card) return;
@@ -482,6 +529,7 @@ $$('[data-close-help]').forEach(button => button.addEventListener('click', () =>
 help.addEventListener('click',event => { if (event.target===help) help.close(); });
 window.addEventListener('hashchange', () => { const panel=location.hash.slice(1); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
 restoreState();
+renderObservations();
 const route=location.hash.slice(1);
 if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
