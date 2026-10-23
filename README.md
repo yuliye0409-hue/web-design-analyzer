@@ -5,6 +5,8 @@
 ## 在另一台电脑上运行
 
 安装 Git、Node.js 20 或更新版本，然后：
+
+```sh
 npm install
 npm run browser:install
 npm start
