@@ -127,6 +127,9 @@ textarea{min-height:84px;line-height:1.75}
 .brand-dot,.eyebrow span,.page-heading h1 em,.stamp-cross,.guide-step-number{color:var(--accent-strong)}
 .brand-mark i:nth-child(2){background:#7893a6}
 .brand-mark i:nth-child(3){background:#c1cbd2}
+.brand-mark{display:grid;place-items:center;overflow:hidden;border-radius:7px;background:#20222b;border-color:#424656}
+.brand-mark svg{width:27px;height:27px;fill:none;stroke:#c2c8da;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+.brand-mark svg .brand-mark-arrow{stroke:#9ba9ff;stroke-width:2.6}
 .status-led,.analysis-source i,.prompt-meta i{background:#7894a8}
 .engine-status .status-led{background:#7894a8}
 .side-link:hover,.recent-item:hover{background:#dfe6eb}
@@ -253,6 +256,7 @@ textarea{line-height:1.8}
 html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
 .sidebar{background:#1d1e24;border-color:var(--line)}
 .brand-mark{border-color:#626878}.brand-mark i{background:#9da6c2}.brand-mark i:nth-child(2){background:var(--accent)}.brand-mark i:nth-child(3){background:#586071}
+.brand-mark{background:#20222b;border-color:#424656}
 .brand-dot,.eyebrow span,.page-heading h1 em,.stamp-cross,.guide-step-number,.privacy-icon{color:var(--accent-strong)}
 .side-link,.recent-item,.side-caption,.breadcrumbs,.field-label>span,.page-heading p,.form-footer>span,.asset-note,.evidence-warnings{color:var(--muted)}
 .side-link:hover,.recent-item:hover{background:#292b33}.side-link.active{background:#30354a;color:#f4f5fa}
