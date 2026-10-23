@@ -381,6 +381,28 @@ function showCrawlEvidence(data) {
   $('[data-evidence-warnings]').innerHTML = (data.facts.warnings || []).map(item => `<li>${esc(item)}</li>`).join('');
   crawlEvidence.hidden = false;
 }
+function resetAnalysisTask() {
+  form.reset();
+  modules = [];
+  generated = false;
+  result.hidden = true;
+  renderModules();
+  crawlEvidence.hidden = true;
+  $('[data-evidence-desktop]').removeAttribute('src');
+  $('[data-evidence-mobile]').removeAttribute('src');
+  $('[data-evidence-summary]').textContent = '';
+  $('[data-evidence-warnings]').replaceChildren();
+  analysisError.hidden = true;
+  $('[data-analysis-error-title]').textContent = '网页实采暂不可用';
+  $('[data-analysis-error-message]').textContent = '';
+  $('[data-analysis-source]').textContent = '基于你的目标与页面类型生成框架';
+  promptEditor.value = '';
+  updatePromptMeta();
+  $('[data-prompt-ready]').textContent = '等待生成分析';
+  setProgress(1);
+  updatePreview(currentInputs());
+  saveState();
+}
 async function startAnalysis() {
   const data = currentInputs();
   const submit = $('[data-submit-analysis]');
@@ -451,7 +473,11 @@ form.addEventListener('submit', event => { event.preventDefault(); startAnalysis
 form.addEventListener('input', () => { updatePreview(currentInputs()); if (generated) buildPrompt(); else saveState(); });
 $$('[data-panel]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.dataset.panel); }));
 $$('[data-load-demo]').forEach(button => button.addEventListener('click', loadDemo));
-$$('[data-clear-url]').forEach(button => button.addEventListener('click', () => { $('#reference-url').value=''; updatePreview(currentInputs()); buildPrompt(); $('#reference-url').focus(); }));
+$$('[data-clear-url]').forEach(button => button.addEventListener('click', () => {
+  resetAnalysisTask();
+  $('#reference-url').focus();
+  notify('参考网页已清空，当前任务信息已重置');
+}));
 $('[data-close-result]').addEventListener('click', () => { result.hidden=true; });
 $('[data-reset-modules]').addEventListener('click', () => { modules=moduleDefaults(titleCase($('#page-type').value)); renderModules(); notify('已恢复此页面类型的建议模块'); });
 $('[data-add-module]').addEventListener('click', () => { modules=modulesFromUI(); modules.push({ title:'新增内容模块',purpose:'说明此模块帮助用户理解或完成什么。',components:'列出要呈现的内容、文字或组件。',interaction:'说明点击、展开或提交之后的可见结果。' }); renderModules(); $('.module-title-input',moduleList.lastElementChild).focus(); });
