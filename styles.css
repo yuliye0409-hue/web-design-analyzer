@@ -230,3 +230,68 @@ textarea{line-height:1.8}
 .app-footer{font-size:10px}
 @media(max-width:800px){.page-heading h1{font-size:32px}.panel-heading h2,.result-top h2,.output-toolbar h2,.custom-assets-heading h2{font-size:18px}.guide-start h2,.guide-section-heading h2,.guide-learning h2,.guide-team h2{font-size:21px}}
 @media(max-width:540px){body{font-size:15px}.brand{font-size:17px}.side-link{font-size:13px}.breadcrumbs{font-size:11px}.saved-state{font-size:10px}.guide-shortcut{font-size:10px}.page-heading h1{font-size:28px}.page-heading p{font-size:13px}.panel-heading h2,.result-top h2,.output-toolbar h2,.custom-assets-heading h2{font-size:17px}.field-label{font-size:12px}.field-label>span{font-size:10px}.url-control input,.text-control,textarea,.select-wrap select{font-size:14px}.form-footer>span{font-size:10px}.primary-button{font-size:12px}.small-button,.text-button{font-size:11px}.quick-facts span{font-size:9px}.quick-facts strong{font-size:10px}.module-fields label{font-size:10px}.module-fields input,.module-fields textarea{font-size:13px}.module-lesson p{font-size:11px}.mode-card strong{font-size:12px}.mode-card small{font-size:10px}.check-row strong{font-size:11px}.check-row small{font-size:10px}.prompt-meta{font-size:9px}.prompt-editor{font-size:12px}.output-foot{font-size:9px}.custom-assets-heading p{font-size:12px}.upload-button,.upload-dropzone strong{font-size:12px}.upload-dropzone small{font-size:10px}.asset-library-heading{font-size:10px}.asset-heading strong{font-size:12px}.asset-heading>span,.asset-controls label{font-size:10px}.asset-controls input,.asset-controls select{font-size:12px}.asset-note,.asset-details summary{font-size:10px}.guide-start h2,.guide-section-heading h2,.guide-learning h2,.guide-team h2{font-size:19px}.guide-start p,.guide-section-heading p,.guide-learning>div:first-child p,.guide-team>div:first-child p{font-size:13px}.guide-step-tag{font-size:10px}.guide-step-card h3{font-size:16px}.guide-step-card p,.guide-step-card li,.guide-team li{font-size:13px;line-height:1.8}.guide-learning-grid b{font-size:14px}.guide-learning-grid span{font-size:12px}.guide-learning-grid p{font-size:11px}.guide-faq-list summary{font-size:13px}.guide-faq-list details p{font-size:12px}.guide-faq-list code,.guide-team code{font-size:11px}.app-footer{font-size:9px}}
+
+/* Dark charcoal theme inspired by VibeHub: layered graphite surfaces and quiet periwinkle accents. */
+:root{
+  color-scheme:dark;
+  --paper:#191a1f;
+  --surface:#202127;
+  --ink:#e7e8ee;
+  --muted:#a0a3ad;
+  --soft:#747985;
+  --line:#30323a;
+  --line-dark:#41444e;
+  --lime:#252936;
+  --lime-deep:#3b435d;
+  --blue:#262a39;
+  --coral:#d4aaa0;
+  --accent:#8799f7;
+  --accent-strong:#a2afff;
+  --accent-soft:#292e42;
+  --accent-faint:#20232d;
+}
+html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
+.sidebar{background:#1d1e24;border-color:var(--line)}
+.brand-mark{border-color:#626878}.brand-mark i{background:#9da6c2}.brand-mark i:nth-child(2){background:var(--accent)}.brand-mark i:nth-child(3){background:#586071}
+.brand-dot,.eyebrow span,.page-heading h1 em,.stamp-cross,.guide-step-number,.privacy-icon{color:var(--accent-strong)}
+.side-link,.recent-item,.side-caption,.breadcrumbs,.field-label>span,.page-heading p,.form-footer>span,.asset-note,.evidence-warnings{color:var(--muted)}
+.side-link:hover,.recent-item:hover{background:#292b33}.side-link.active{background:#30354a;color:#f4f5fa}
+.side-link kbd,.recent-arrow,.engine-status small,.profile-button small{color:#858995}
+.status-led,.analysis-source i,.prompt-meta i,.engine-status .status-led{background:#91a2ff}
+.avatar{background:#30354a;border-color:#4c587c;color:#cbd2ff}
+.heading-stamp,.browser-bar,.guide-step-number{background:#262832;border-color:var(--line-dark)}
+.workflow-steps>i{background:var(--line-dark)}.workflow-step>span:first-child{border-color:var(--line-dark)}.workflow-step.is-active>span:first-child{background:#303650;border-color:#59658f}
+.workspace-grid,.input-panel,.preview-panel,.analysis-result,.prompt-output,.guide-start,.guide-learning,.guide-team,.guide-step-card,.guide-faq-list,.skill-sources,.crawl-evidence,.custom-assets-panel,.vibe-guide,.vibe-terms,.skill-source-grid article{background:var(--surface);border-color:var(--line-dark)}
+.input-panel,.analysis-result,.guide-faq-list{border-color:var(--line-dark)}
+.url-control,.text-control,textarea,.select-wrap,.select-wrap select,.module-fields input,.module-fields textarea,.asset-controls input,.asset-controls select,.asset-details textarea,.upload-dropzone,.prompt-editor{background:#191a20;color:var(--ink);border-color:var(--line-dark)}
+.url-control input,.text-control,textarea,.select-wrap select,.asset-controls input,.asset-controls select,.asset-details textarea,.module-fields input,.module-fields textarea{color:var(--ink)}
+.url-control input::placeholder,.text-control::placeholder,textarea::placeholder{color:#737783}
+.url-control:focus-within,.text-control:focus,.module-fields input:focus,.module-fields textarea:focus,.asset-controls input:focus,.asset-controls select:focus{border-color:#7f90e2}
+.primary-button{border-color:#8495f0;background:#8495f0;color:#171820}.primary-button:hover{border-color:#a0adff;background:#a0adff}
+.text-button,.small-button,.guide-step-card a,.guide-inline-button,.module-lesson>span,.skill-source-tag,.skill-source-grid a{color:#a9b4ff}
+.text-button:hover,.guide-step-card a:hover,.guide-inline-button:hover{color:#d0d5ff}
+.small-button:hover,.module-actions button:hover,.upload-button:hover{background:#2d3245}
+.panel-mark,.vibe-flow article>span,.term-symbol,.example-arrow,.vibe-note{color:#9ba9ff}
+.analysis-result,.mode-card,.check-row,.asset-item,.example-output,.example-input,.vibe-example,.module-lesson,.guide-learning-grid article,.guide-faq-list details,.skill-source-grid article,.evidence-grid figure{background:#24262e;border-color:var(--line)}
+.result-top h2>span,.evidence-status,.mode-card.selected,.check-row input:checked+.check-box{background:#30364a;border-color:#59658f;color:#d5d9ff}
+.module-lesson{border-left-color:#7384d3}.vibe-example{border-left-color:#8799f7}
+.mode-card.selected{border-color:#7485d4}.mode-radio,.check-box{border-color:#5a5e6c;background:#1d1f25}
+.check-row input:checked+.check-box{color:#e0e4ff}
+.guide-toc a,.guide-shortcut{background:#24262e;border-color:var(--line-dark);color:var(--ink)}
+.guide-toc a:hover,.guide-toc a:focus-visible,.guide-shortcut:hover,.guide-shortcut:focus-visible{background:#343a52;border-color:#626fa7;color:#f3f4fb}
+.guide-shortcut span,.guide-step-tag,.guide-faq-list summary::after{color:#a9b4ff}
+.guide-faq-list details{border-bottom-color:var(--line)}
+.guide-faq-list code,.guide-team code{background:#2b2d35;border-color:var(--line-dark);color:#d6d8e1}
+.upload-dropzone{background:#1c1e25;border-color:#4b4f5b}.upload-dropzone.is-dragging{background:#292e42;border-color:#8799f7}
+.dropzone-mark{color:#a9b4ff}.asset-preview,.recent-placeholder{background:#2b2e37;color:#c2c8d8}.asset-note{color:#aaaed0}
+.wire-placeholder{background:linear-gradient(135deg,#454b59,#343a48)}.wire-card-photo .wire-placeholder{background:linear-gradient(135deg,#4a505d,#343a47)}
+.page-wireframe{background:#202228;border-color:var(--line-dark)}.wire-nav{border-bottom-color:var(--line-dark)}.wire-nav-links i{background:#697080}.wire-copy>span{color:#a8b2cc}.wire-copy>i{border-color:#5f6675;color:#d3d6df}
+.browser-dots i{background:#646975}.browser-dots i:first-child{background:#cb807b}
+.wire-marquee{background:#30364a;color:#d9ddf6}
+.wire-image img{mix-blend-mode:normal;filter:grayscale(.75) brightness(.8)}
+.wire-image>span,.wire-image>b{color:#e2e5ed}
+.wire-copy>strong,.wire-cards b,.wire-section-head>b{color:#e7e8ee}
+.asset-item:focus-within,.upload-button:focus-visible,.upload-dropzone:focus-within{outline-color:var(--accent)}
+.privacy-icon,.asset-heading>span,.asset-details summary,.asset-library-heading{color:var(--muted)}
+.app-footer{color:#8c909a}
+::selection{background:#485582;color:#fff}
