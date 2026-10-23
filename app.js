@@ -289,7 +289,7 @@ function buildPrompt() {
 function navigate(panel) {
   $$('[data-view]').forEach(view => { view.hidden = view.dataset.view !== panel; });
   $$('.side-link').forEach(link => link.classList.toggle('active', link.dataset.panel === panel));
-  const labels = { analysis:'独立分析工作区',prompt:'提示词工作台',vibehub:'设计知识与术语' };
+  const labels = { analysis:'独立分析工作区',prompt:'提示词工作台',vibehub:'设计知识与术语',guide:'使用 SOP' };
   $('[data-current-view]').textContent = labels[panel];
   if (panel === 'prompt') buildPrompt();
   history.replaceState(null,'',`#${panel === 'analysis' ? 'workspace' : panel}`);
@@ -398,6 +398,13 @@ $('[data-close-result]').addEventListener('click', () => { result.hidden=true; }
 $('[data-reset-modules]').addEventListener('click', () => { modules=moduleDefaults(titleCase($('#page-type').value)); renderModules(); notify('已恢复此页面类型的建议模块'); });
 $('[data-add-module]').addEventListener('click', () => { modules=modulesFromUI(); modules.push({ title:'新增内容模块',purpose:'说明此模块帮助用户理解或完成什么。',components:'列出要呈现的内容、文字或组件。',interaction:'说明点击、展开或提交之后的可见结果。' }); renderModules(); $('.module-title-input',moduleList.lastElementChild).focus(); });
 $('[data-make-prompt]').addEventListener('click', () => { generated=true; buildPrompt(); navigate('prompt'); });
+$$('[data-guide-go]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.dataset.guideGo); }));
+$('[data-guide-demo]').addEventListener('click', () => { loadDemo(); navigate('analysis'); });
+$('[data-guide-copy]').addEventListener('click', async () => {
+  const checklist = '网页分析生成站｜上手清单\n1. 选择可公开访问的参考网页，填写页面类型、用户和目标。\n2. 点击实际分析，检查桌面/手机截图与实采证据。\n3. 逐模块修订目的、视觉、组件、交互和专业判断；补充未实测状态。\n4. 在提示词工作台填写真实资料，上传并标注素材用途。\n5. 选择任务模式与技术约束，生成后检查提示词。\n6. 复制给 Agent 或导出 Markdown；所需素材另行下载并放入 Agent 项目。\n注意：GitHub Pages 不运行实采接口；新电脑需安装 Node.js、依赖和 Chromium。草稿/附件留在本机，不会自动跨设备同步。';
+  try { await navigator.clipboard.writeText(checklist); notify('上手清单已复制'); }
+  catch { notify('浏览器未开放剪贴板；请按 SOP 逐步操作'); }
+});
 moduleList.addEventListener('input', () => { modules=modulesFromUI(); buildPrompt(); });
 moduleList.addEventListener('click', event => {
   const card = event.target.closest('.module-card');
@@ -472,9 +479,9 @@ const help = $('.help-dialog');
 $$('[data-help]').forEach(button => button.addEventListener('click', () => help.showModal()));
 $$('[data-close-help]').forEach(button => button.addEventListener('click', () => help.close()));
 help.addEventListener('click',event => { if (event.target===help) help.close(); });
-window.addEventListener('hashchange', () => { const panel=location.hash.slice(1); if (['analysis','prompt','vibehub'].includes(panel)) navigate(panel); });
+window.addEventListener('hashchange', () => { const panel=location.hash.slice(1); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
 restoreState();
 const route=location.hash.slice(1);
-if (['prompt','vibehub'].includes(route)) navigate(route);
+if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
 loadAssets();
