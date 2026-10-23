@@ -284,6 +284,10 @@ html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
 .guide-faq-list details{border-bottom-color:var(--line)}
 .guide-step-card p,.guide-step-card li,.guide-team li{color:#b9bdc8}
 .guide-step-card li::marker{color:#8994bd}
+.guide-faq-list details p{color:#b9bdc8}
+.guide-faq-list summary{color:#e7e8ee}
+.guide-faq-list code,.guide-team code{background:#2b2d35;border-color:#41444e;color:#d6d8e1}
+.guide-faq-list details[open]{background:#24262e}
 .vibe-flow article,.module-column-labels span{background:#24262e;border-color:var(--line-dark);color:var(--ink)}
 .vibe-flow article p{color:var(--muted)}
 .vibe-example strong,.module-column-labels{color:var(--ink)}
