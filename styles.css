@@ -321,6 +321,22 @@ html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
 .privacy-icon,.asset-heading>span,.asset-details summary,.asset-library-heading{color:var(--muted)}
 .app-footer{color:#8c909a}
 ::selection{background:#485582;color:#fff}
+.term-lookup-panel{position:relative;max-width:900px;margin:24px auto 0;padding:32px;border:1px solid var(--line-dark);background:var(--surface)}
+.term-lookup-copy{max-width:650px}
+.term-lookup-copy h2{margin:7px 0 9px;font-size:22px;font-weight:650}
+.term-lookup-copy>p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}
+.term-lookup-form{max-width:680px;margin-top:28px}
+.term-lookup-form .field-label{font-size:12px}
+.term-lookup-control{display:flex;align-items:center;gap:10px;min-height:50px;padding:4px 5px 4px 14px;border:1px solid var(--line-dark);background:#191a20}
+.term-lookup-control>span{color:var(--accent-strong);font-size:22px}
+.term-lookup-control input{flex:1;min-width:0;height:40px;border:0;outline:0;background:transparent;color:var(--ink);font-size:14px}
+.term-lookup-control input::placeholder{color:var(--soft)}
+.term-lookup-control:focus-within{border-color:var(--accent)}
+.term-lookup-control .primary-button{white-space:nowrap}
+.term-lookup-hint{margin:8px 0 0;color:var(--muted);font-size:11px}
+.term-lookup-direct{display:inline-flex;margin-top:24px;color:#a9b4ff;font-size:12px}
+.term-lookup-direct:hover{color:#d0d5ff}
+@media(max-width:540px){.term-lookup-panel{margin-top:16px;padding:20px 16px}.term-lookup-copy h2{font-size:19px}.term-lookup-copy>p{font-size:12px}.term-lookup-form{margin-top:22px}.term-lookup-control{flex-wrap:wrap;padding:8px}.term-lookup-control>span{display:none}.term-lookup-control input{flex-basis:100%;height:38px;padding:0 7px}.term-lookup-control .primary-button{width:100%}}
 .analysis-error{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;margin-top:14px;padding:14px;border:1px solid #76555c;background:#30252b;color:#f0e8eb;scroll-margin-top:20px}
 .analysis-error[hidden]{display:none}
 .analysis-error-icon{display:grid;place-items:center;width:26px;height:26px;border:1px solid #bd858f;border-radius:50%;color:#f0b5c0;font-weight:700}

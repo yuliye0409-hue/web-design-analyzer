@@ -1,5 +1,3 @@
-import { filterKnowledge, knowledgeEntries } from './knowledge-library.mjs';
-
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const STORAGE_KEY = 'web-design-analyzer-v1';
@@ -20,9 +18,6 @@ let toastTimer;
 let modules = [];
 let generated = false;
 let taskMode = 'analyze-build';
-let knowledgeCategory = 'all';
-let favoritesOnly = false;
-let knowledgeFavorites = new Set();
 let customAssets = [];
 let assetDbPromise;
 let assetsReadyResolve;
@@ -161,49 +156,6 @@ function renderModules() {
 }
 function modulesFromUI() {
   return $$('.module-card',moduleList).map(card => Object.fromEntries($$('[data-field]',card).map(field => [field.dataset.field,field.value.trim()])));
-}
-const KNOWLEDGE_FAVORITES_KEY = 'web-design-knowledge-favorites-v1';
-function renderKnowledge() {
-  const query = $('[data-knowledge-search]').value;
-  const entries = filterKnowledge(knowledgeEntries,{ query, category:knowledgeCategory, favoritesOnly, favorites:knowledgeFavorites });
-  $('[data-knowledge-list]').innerHTML = entries.map(entry => {
-    const favorite = knowledgeFavorites.has(entry.id);
-    return `<article class="knowledge-card" data-knowledge-card="${entry.id}">
-      <div class="knowledge-card-top"><span class="knowledge-category">${esc(({interaction:'交互',visual:'视觉',responsive:'响应式',accessibility:'可访问性',structure:'信息组织'})[entry.category])}</span><button type="button" class="knowledge-favorite" data-toggle-favorite="${entry.id}" aria-label="${favorite?'取消收藏':'收藏'}：${esc(entry.title)}" aria-pressed="${favorite}" title="${favorite?'取消收藏':'收藏'}">${favorite?'★':'☆'}</button></div>
-      <div class="knowledge-card-main"><span class="term-symbol" aria-hidden="true">${entry.symbol}</span><div><h3>${esc(entry.title)}</h3><p>${esc(entry.description)}</p></div></div>
-      <details class="knowledge-example"><summary>查看需求示例</summary><p>${esc(entry.example)}</p></details>
-      <button type="button" class="text-button knowledge-apply" data-apply-knowledge="${entry.id}">加入分析观察 <span>↗</span></button>
-    </article>`;
-  }).join('');
-  $('[data-knowledge-count]').textContent = entries.length ? `显示 ${entries.length} / ${knowledgeEntries.length} 个知识点` : '没有匹配的知识点';
-  $('[data-knowledge-empty]').hidden = entries.length > 0;
-  $('[data-clear-knowledge-search]').hidden = !query;
-  $('[data-favorite-count]').textContent = String(knowledgeFavorites.size);
-  const favoriteButton = $('[data-favorites-toggle]');
-  favoriteButton.setAttribute('aria-pressed',String(favoritesOnly));
-  favoriteButton.classList.toggle('is-active',favoritesOnly);
-  $$('[data-knowledge-category]').forEach(button => {
-    const active = button.dataset.knowledgeCategory === knowledgeCategory;
-    button.setAttribute('aria-pressed',String(active));
-    button.classList.toggle('is-active',active);
-  });
-}
-function resetKnowledgeFilters() {
-  $('[data-knowledge-search]').value = '';
-  knowledgeCategory = 'all';
-  favoritesOnly = false;
-  renderKnowledge();
-}
-function applyKnowledgeExample(id) {
-  const entry = knowledgeEntries.find(item => item.id === id);
-  if (!entry) return;
-  const notes = $('#visual-notes');
-  const line = `${entry.title}：${entry.example}`;
-  if (!notes.value.includes(line)) notes.value = [notes.value.trim(),line].filter(Boolean).join('\n');
-  notes.dispatchEvent(new Event('input',{bubbles:true}));
-  navigate('analysis');
-  $('#visual-notes').focus();
-  notify('已加入网页分析观察，并同步到提示词');
 }
 function currentModeLabel() {
   return ({ 'analyze-build':'分析并搭建','build':'按现有分析搭建','analyze':'只分析网页' })[taskMode];
@@ -497,24 +449,6 @@ $('[data-guide-copy]').addEventListener('click', async () => {
   catch { notify('浏览器未开放剪贴板；请按 SOP 逐步操作'); }
 });
 moduleList.addEventListener('input', () => { modules=modulesFromUI(); buildPrompt(); });
-$('[data-knowledge-search]').addEventListener('input',renderKnowledge);
-$('[data-clear-knowledge-search]').addEventListener('click',() => { $('[data-knowledge-search]').value=''; renderKnowledge(); $('[data-knowledge-search]').focus(); });
-$$('[data-knowledge-category]').forEach(button => button.addEventListener('click',() => { knowledgeCategory=button.dataset.knowledgeCategory; renderKnowledge(); }));
-$('[data-favorites-toggle]').addEventListener('click',() => { favoritesOnly=!favoritesOnly; renderKnowledge(); });
-$$('[data-reset-knowledge], [data-reset-knowledge-empty]').forEach(button => button.addEventListener('click',resetKnowledgeFilters));
-$$('[data-knowledge-list]').forEach(list => list.addEventListener('click',event => {
-  const favoriteButton=event.target.closest('[data-toggle-favorite]');
-  if(favoriteButton){
-    const id=favoriteButton.dataset.toggleFavorite;
-    if(knowledgeFavorites.has(id))knowledgeFavorites.delete(id);else knowledgeFavorites.add(id);
-    try{localStorage.setItem(KNOWLEDGE_FAVORITES_KEY,JSON.stringify([...knowledgeFavorites]));}
-    catch{notify('浏览器无法保存收藏；当前筛选仍可使用');}
-    renderKnowledge();
-    return;
-  }
-  const applyButton=event.target.closest('[data-apply-knowledge]');
-  if(applyButton)applyKnowledgeExample(applyButton.dataset.applyKnowledge);
-}));
 moduleList.addEventListener('click', event => {
   const card = event.target.closest('.module-card');
   if (!card) return;
@@ -544,7 +478,6 @@ $('[data-download-prompt]').addEventListener('click', () => {
   setTimeout(()=>URL.revokeObjectURL(anchor.href),1000);
   notify('已导出 Markdown 提示词');
 });
-$('[data-use-example]').addEventListener('click', () => { $('#visual-notes').value='帮助图标的悬停和键盘聚焦时显示一条简短说明；移出或失焦后收起。请同时保证触屏用户可以点按查看。'; navigate('prompt'); $('#include-vibehub').checked=true; buildPrompt(); notify('已将可执行交互示例加入项目观察'); });
 $('#custom-brief').addEventListener('input',buildPrompt);
 const fileInput = $('#custom-file-input');
 fileInput.addEventListener('change',async () => { await addAssets(fileInput.files); fileInput.value=''; });
@@ -589,12 +522,7 @@ $$('[data-help]').forEach(button => button.addEventListener('click', () => help.
 $$('[data-close-help]').forEach(button => button.addEventListener('click', () => help.close()));
 help.addEventListener('click',event => { if (event.target===help) help.close(); });
 window.addEventListener('hashchange', () => { const panel=location.hash.slice(1); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
-try {
-  const savedFavorites=JSON.parse(localStorage.getItem(KNOWLEDGE_FAVORITES_KEY)||'[]');
-  if(Array.isArray(savedFavorites))knowledgeFavorites=new Set(savedFavorites.filter(id=>knowledgeEntries.some(entry=>entry.id===id)));
-} catch { localStorage.removeItem(KNOWLEDGE_FAVORITES_KEY); }
 restoreState();
-renderKnowledge();
 const route=location.hash.slice(1);
 if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
