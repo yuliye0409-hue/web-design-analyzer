@@ -72,6 +72,14 @@
                 <div><label class="field-label" for="responsive">设备适配</label><div class="select-wrap"><select id="responsive" name="responsive"><option>桌面与手机都适配</option><option>优先桌面端</option><option>优先手机端</option><option>桌面、平板、手机完整适配</option></select><span>⌄</span></div></div>
               </div>
               <div class="form-footer"><span><span class="privacy-icon">◉</span> 网址会发送给当前分析服务并访问目标网页</span><button class="primary-button" type="submit" data-submit-analysis>实际分析参考网页 <span>↗</span></button></div>
+              <section class="analysis-error" data-analysis-error role="alert" aria-live="assertive" hidden>
+                <div class="analysis-error-icon" aria-hidden="true">!</div>
+                <div class="analysis-error-content">
+                  <h3 data-analysis-error-title>网页实采暂不可用</h3>
+                  <p data-analysis-error-message></p>
+                  <div class="analysis-error-actions"><button type="button" class="text-button" data-analysis-error-guide>查看本机实采步骤 <span>↗</span></button><button type="button" class="analysis-error-dismiss" data-dismiss-analysis-error>关闭</button></div>
+                </div>
+              </section>
             </form>
           </section>
 

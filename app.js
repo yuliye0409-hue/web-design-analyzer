@@ -10,6 +10,7 @@ const MAX_ASSETS = 20;
 const MAX_TEXT_PER_ASSET = 20000;
 const form = $('#analysis-form');
 const toast = $('.toast');
+const analysisError = $('[data-analysis-error]');
 const result = $('#result');
 const moduleList = $('[data-module-list]');
 const promptEditor = $('#prompt-output');
@@ -385,6 +386,7 @@ async function startAnalysis() {
   const submit = $('[data-submit-analysis]');
   const originalLabel = submit.innerHTML;
   let analysisPayload = null;
+  analysisError.hidden = true;
   submit.disabled = true;
   submit.innerHTML = data.url ? '正在打开并采集网页…' : '正在整理通用框架…';
   try {
@@ -421,8 +423,15 @@ async function startAnalysis() {
     result.scrollIntoView({ behavior:reducedMotion.matches?'instant':'smooth', block:'start' });
     saveState();
   } catch (error) {
-    const message = error instanceof TypeError && error.message.includes('fetch') ? '无法连接网页实采服务。在线 GitHub Pages 仅托管静态界面；请在项目根目录运行 npm install、npm run browser:install 和 npm start 后使用本地工作台。' : error.message || '网页分析失败，请检查网址或分析服务';
-    notify(message);
+    const staticHosting = /HTTP 405|GitHub Pages|fetch/i.test(error.message || '');
+    const message = staticHosting
+      ? '当前打开的是 GitHub Pages 静态版，不能运行网页实采服务。请在项目根目录运行 npm install、npm run browser:install、npm start，再打开 http://127.0.0.1:4173/；此失败不会覆盖已有分析。'
+      : error.message || '网页分析失败，请检查网址或分析服务。此失败不会覆盖已有分析。';
+    $('[data-analysis-error-title]').textContent = staticHosting ? '线上页面不能执行网页实采' : '网页实采未完成';
+    $('[data-analysis-error-message]').textContent = message;
+    analysisError.hidden = false;
+    analysisError.scrollIntoView({ behavior:reducedMotion.matches?'instant':'smooth', block:'nearest' });
+    notify('网页实采未完成，工作区内已显示处理方式');
     $('[data-analysis-source]').textContent = `本次没有完成网页实测：${message}；旧分析未被覆盖`;
   } finally {
     submit.disabled = false;
@@ -448,6 +457,13 @@ $('[data-reset-modules]').addEventListener('click', () => { modules=moduleDefaul
 $('[data-add-module]').addEventListener('click', () => { modules=modulesFromUI(); modules.push({ title:'新增内容模块',purpose:'说明此模块帮助用户理解或完成什么。',components:'列出要呈现的内容、文字或组件。',interaction:'说明点击、展开或提交之后的可见结果。' }); renderModules(); $('.module-title-input',moduleList.lastElementChild).focus(); });
 $('[data-make-prompt]').addEventListener('click', () => { generated=true; buildPrompt(); navigate('prompt'); });
 $$('[data-guide-go]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(link.dataset.guideGo); }));
+$$('[data-analysis-error-guide]').forEach(button => button.addEventListener('click', () => {
+  navigate('guide');
+  const faq = [...$('#guide-limits').querySelectorAll('details')].find(item => item.querySelector('summary')?.textContent.includes('GitHub Pages'));
+  if (faq) faq.open = true;
+  requestAnimationFrame(() => (faq || $('#guide-limits')).scrollIntoView({ behavior:reducedMotion.matches?'instant':'smooth', block:'start' }));
+}));
+$$('[data-dismiss-analysis-error]').forEach(button => button.addEventListener('click', () => { analysisError.hidden = true; }));
 $('[data-guide-demo]').addEventListener('click', () => { loadDemo(); navigate('analysis'); });
 $('[data-guide-copy]').addEventListener('click', async () => {
   const checklist = '网页分析生成站｜上手清单\n1. 选择可公开访问的参考网页，填写页面类型、用户和目标。\n2. 点击实际分析，检查桌面/手机截图与实采证据。\n3. 逐模块修订目的、视觉、组件、交互和专业判断；补充未实测状态。\n4. 在提示词工作台填写真实资料，上传并标注素材用途。\n5. 选择任务模式与技术约束，生成后检查提示词。\n6. 复制给 Agent 或导出 Markdown；所需素材另行下载并放入 Agent 项目。\n注意：GitHub Pages 不运行实采接口；新电脑需安装 Node.js、依赖和 Chromium。草稿/附件留在本机，不会自动跨设备同步。';
