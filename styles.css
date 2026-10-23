@@ -282,9 +282,12 @@ html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
 .guide-toc a:hover,.guide-toc a:focus-visible,.guide-shortcut:hover,.guide-shortcut:focus-visible{background:#343a52;border-color:#626fa7;color:#f3f4fb}
 .guide-shortcut span,.guide-step-tag,.guide-faq-list summary::after{color:#a9b4ff}
 .guide-faq-list details{border-bottom-color:var(--line)}
+.guide-step-card p,.guide-step-card li,.guide-team li{color:#b9bdc8}
+.guide-step-card li::marker{color:#8994bd}
 .vibe-flow article,.module-column-labels span{background:#24262e;border-color:var(--line-dark);color:var(--ink)}
 .vibe-flow article p{color:var(--muted)}
-.vibe-example b,.vibe-example strong,.module-column-labels{color:var(--ink)}
+.vibe-example strong,.module-column-labels{color:var(--ink)}
+.vibe-example b{background:transparent;color:#c7ceff;padding:0}
 .guide-faq-list code,.guide-team code{background:#2b2d35;border-color:var(--line-dark);color:#d6d8e1}
 .upload-dropzone{background:#1c1e25;border-color:#4b4f5b}.upload-dropzone.is-dragging{background:#292e42;border-color:#8799f7}
 .upload-button{background:#292d3b;border-color:#505875;color:#dbe0ff}.upload-button:hover{background:#353c55;border-color:#7383c4}
