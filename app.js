@@ -521,15 +521,18 @@ const help = $('.help-dialog');
 $$('[data-help]').forEach(button => button.addEventListener('click', () => help.showModal()));
 $$('[data-close-help]').forEach(button => button.addEventListener('click', () => help.close()));
 help.addEventListener('click',event => { if (event.target===help) help.close(); });
-window.addEventListener('hashchange', () => { const panel=location.hash.slice(1); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
+$('.profile-button')?.addEventListener('click', () => notify('当前是本地工作区；草稿和素材保存在此浏览器，不会自动同步到其他电脑'));
+const panelFromHash = hash => hash === 'workspace' || hash === 'analysis' ? 'analysis' : hash;
+window.addEventListener('hashchange', () => { const panel=panelFromHash(location.hash.slice(1)); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
 restoreState();
-const route=location.hash.slice(1);
+const route=panelFromHash(location.hash.slice(1));
 if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
 loadAssets();
 
 // Give every actionable control a short, content-appropriate click acknowledgement.
 const interactionSelector = 'button:not(:disabled),a[href],summary,label.upload-button,.check-row';
+let pressedControl = null;
 function flashInteraction(control) {
   if (!control || control.matches(':disabled,[aria-disabled="true"]')) return;
   control.classList.remove('click-feedback');
@@ -538,19 +541,24 @@ function flashInteraction(control) {
   window.setTimeout(() => control.classList.remove('click-feedback'), 420);
 }
 document.addEventListener('pointerdown', event => {
-  const control = event.target.closest(interactionSelector);
-  if (control) control.classList.add('is-pressing');
+  const target = event.target instanceof Element ? event.target : null;
+  pressedControl = target?.closest(interactionSelector) || null;
+  pressedControl?.classList.add('is-pressing');
 });
 document.addEventListener('pointerup', event => {
-  const control = event.target.closest(interactionSelector);
+  const control = pressedControl;
+  pressedControl = null;
   if (!control) return;
   control.classList.remove('is-pressing');
-  flashInteraction(control);
+  const target = event.target instanceof Element ? event.target : null;
+  if (target?.closest(interactionSelector) === control) flashInteraction(control);
 });
 document.addEventListener('pointercancel', event => {
-  event.target.closest(interactionSelector)?.classList.remove('is-pressing');
+  pressedControl?.classList.remove('is-pressing');
+  pressedControl = null;
 });
 document.addEventListener('click', event => {
-  const control = event.target.closest(interactionSelector);
+  const target = event.target instanceof Element ? event.target : null;
+  const control = target?.closest(interactionSelector);
   if (control && event.detail === 0) flashInteraction(control);
 });
