@@ -527,3 +527,30 @@ const route=location.hash.slice(1);
 if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
 loadAssets();
+
+// Give every actionable control a short, content-appropriate click acknowledgement.
+const interactionSelector = 'button:not(:disabled),a[href],summary,label.upload-button,.check-row';
+function flashInteraction(control) {
+  if (!control || control.matches(':disabled,[aria-disabled="true"]')) return;
+  control.classList.remove('click-feedback');
+  void control.offsetWidth;
+  control.classList.add('click-feedback');
+  window.setTimeout(() => control.classList.remove('click-feedback'), 420);
+}
+document.addEventListener('pointerdown', event => {
+  const control = event.target.closest(interactionSelector);
+  if (control) control.classList.add('is-pressing');
+});
+document.addEventListener('pointerup', event => {
+  const control = event.target.closest(interactionSelector);
+  if (!control) return;
+  control.classList.remove('is-pressing');
+  flashInteraction(control);
+});
+document.addEventListener('pointercancel', event => {
+  event.target.closest(interactionSelector)?.classList.remove('is-pressing');
+});
+document.addEventListener('click', event => {
+  const control = event.target.closest(interactionSelector);
+  if (control && event.detail === 0) flashInteraction(control);
+});
