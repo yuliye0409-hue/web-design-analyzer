@@ -348,3 +348,41 @@ html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
 .analysis-error-dismiss:hover{background:#413138;color:#fff}
 .toast{max-width:min(420px,calc(100vw - 30px));padding:11px 14px;border:1px solid #59658f;background:#292d3b;color:#f2f3fa;font-size:12px;line-height:1.55;box-shadow:0 8px 28px #0005}
 @media(max-width:540px){.analysis-error{grid-template-columns:23px minmax(0,1fr);gap:9px;padding:11px}.analysis-error-icon{width:22px;height:22px}.analysis-error-content h3{font-size:12px}.analysis-error-content p{font-size:11px}.analysis-error-actions{flex-wrap:wrap;gap:10px}.toast{right:12px;bottom:12px}}
+
+/* Horizontal workspace navigation */
+:root{--sidebar:0px}
+.sidebar{position:sticky;top:0;inset:auto;width:auto;height:auto;min-height:0;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;padding:14px clamp(20px,4vw,52px);border-right:0;border-bottom:1px solid var(--line)}
+.brand{margin:0;flex:0 0 auto}
+.side-caption,.side-caption-lower,.recent-item,.sidebar-bottom{display:none}
+.side-nav{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;min-width:0}
+.side-link{height:40px;padding:0 12px;gap:8px;white-space:nowrap}
+.side-link kbd{margin-left:6px}
+.main-area{margin-left:0}
+
+@media(max-width:1050px){
+  .sidebar{display:flex;flex-wrap:wrap;gap:12px 18px;padding:12px 20px}
+  .brand{flex:1 0 auto}
+  .side-nav{order:3;flex:1 0 100%;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+  .side-link{flex:0 0 auto}
+}
+
+@media(max-width:800px){
+  .sidebar{display:flex;flex-wrap:wrap;gap:12px 18px;padding:12px 20px}
+  .brand{flex:1 0 auto}
+  .brand>span:last-child{display:block}
+  .side-nav{order:3;flex:1 0 100%;justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+  .side-link{flex:0 0 auto;width:auto;height:40px;padding:0 12px;font-size:12px;gap:8px}
+  .side-link.active{font-size:12px}
+  .side-link kbd,.side-link:not(.active) kbd{display:inline}
+  .nav-icon{width:17px;font-size:16px}
+}
+
+@media(max-width:540px){
+  .sidebar{gap:10px;padding:10px 12px}
+  .brand{font-size:16px}
+  .brand small{display:none}
+  .side-nav{margin-inline:-2px;padding-inline:2px}
+  .side-link{height:36px;padding:0 10px;font-size:11px}
+  .side-link.active{font-size:11px}
+  .nav-icon{font-size:14px}
+}
