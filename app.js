@@ -366,10 +366,20 @@ function resetAnalysisTask() {
   updatePreview(currentInputs());
   saveState();
 }
+function isStaticPreview() {
+  return location.hostname === 'github.io' || location.hostname.endsWith('.github.io') || location.protocol === 'file:';
+}
+function localWorkbenchUrl(data) {
+  const target = new URL('http://127.0.0.1:4173/');
+  target.searchParams.set('handoff','1');
+  for (const key of ['url','pageType','audience','goal','visualNotes','palette','responsive']) {
+    if (data[key]) target.searchParams.set(key,data[key]);
+  }
+  return target.href;
+}
 function analysisEndpoints() {
   const endpoints = ['/api/analyze'];
-  const isStaticPreview = location.hostname === 'github.io' || location.hostname.endsWith('.github.io') || location.protocol === 'file:';
-  if (isStaticPreview) endpoints.push('http://127.0.0.1:4173/api/analyze');
+  if (isStaticPreview()) endpoints.push('http://127.0.0.1:4173/api/analyze');
   return endpoints;
 }
 async function requestAnalysis(url) {
@@ -396,6 +406,11 @@ async function startAnalysis() {
   submit.innerHTML = data.url ? '正在打开并采集网页…' : '正在整理通用框架…';
   try {
     if (data.url?.trim()) {
+      if (isStaticPreview()) {
+        submit.innerHTML = '正在打开本机分析工作台…';
+        location.assign(localWorkbenchUrl(data));
+        return;
+      }
       const response = await requestAnalysis(data.url.trim());
       const contentType = response.headers.get('content-type') || '';
       analysisPayload = contentType.includes('application/json') ? await response.json() : null;
@@ -591,6 +606,15 @@ $('.profile-button')?.addEventListener('click', () => notify('当前是本地工
 const panelFromHash = hash => hash === 'workspace' || hash === 'analysis' ? 'analysis' : hash;
 window.addEventListener('hashchange', () => { const panel=panelFromHash(location.hash.slice(1)); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
 restoreState();
+const handoff = new URLSearchParams(location.search);
+if (location.hostname === '127.0.0.1' && handoff.get('handoff') === '1' && handoff.get('url')) {
+  for (const key of ['url','pageType','audience','goal','visualNotes','palette','responsive']) {
+    const value = handoff.get(key);
+    if (value && form.elements[key]) form.elements[key].value = value;
+  }
+  history.replaceState(null,'',location.pathname + '#workspace');
+  setTimeout(() => startAnalysis(), 0);
+}
 const route=panelFromHash(location.hash.slice(1));
 if (['prompt','vibehub','guide'].includes(route)) navigate(route);
 updatePreview(currentInputs());
