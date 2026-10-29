@@ -3,6 +3,8 @@ import net from 'node:net';
 
 const MAX_SECTIONS = 18;
 const MAX_TEXT = 520;
+const MAX_LINK_TARGETS = 80;
+const MAX_SCROLL_MOTION = 36;
 
 function isBlockedIPv4(address) {
   const parts = address.split('.').map(Number);
@@ -42,20 +44,68 @@ function compact(text, length = MAX_TEXT) {
   return String(text || '').replace(/[\u200b-\u200f\u2060]/g, '').replace(/\s+/g, ' ').trim().slice(0, length);
 }
 
-function evidenceToModules(snapshot, scrollSamples = [], interactions = []) {
+const linkKindLabels = {
+  'same-page': '同页锚点',
+  'same-origin': '站内页面',
+  external: '外部页面',
+  mailto: '邮件地址',
+  tel: '电话地址',
+  download: '下载文件',
+  javascript: '脚本链接',
+  invalid: '无效目标',
+};
+
+export function classifyLinkTarget(rawHref, sourceUrl, attributes = {}) {
+  const href = String(rawHref || '').trim();
+  const target = String(attributes.target || '').trim() || '_self';
+  const rel = String(attributes.rel || '').trim();
+  if (!href) return { kind: 'invalid', href: '', target, rel };
+  if (attributes.download) return { kind: 'download', href, target, rel };
+  if (/^mailto:/i.test(href)) return { kind: 'mailto', href, target, rel };
+  if (/^tel:/i.test(href)) return { kind: 'tel', href, target, rel };
+  if (/^javascript:/i.test(href)) return { kind: 'javascript', href, target, rel };
+  try {
+    const url = new URL(href, sourceUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) return { kind: 'invalid', href: url.href, target, rel };
+    const source = new URL(sourceUrl);
+    const samePage = url.origin === source.origin && url.pathname === source.pathname && url.search === source.search && Boolean(url.hash);
+    return { kind: samePage ? 'same-page' : url.origin === source.origin ? 'same-origin' : 'external', href: url.href, target, rel };
+  } catch {
+    return { kind: 'invalid', href, target, rel };
+  }
+}
+
+function linkSummary(items = []) {
+  if (!items.length) return '';
+  const details = items.slice(0, 8).map(item => {
+    const label = compact(item.label || item.href || '未命名链接', 70);
+    const kind = linkKindLabels[item.kind] || item.kind;
+    const openMode = item.target && item.target !== '_self' ? `，打开方式 ${item.target}` : '';
+    const safety = item.kind === 'external' && item.target === '_blank' && !/\bnoopener\b/i.test(item.rel || '') ? '，新窗口未声明 noopener' : '';
+    return `“${label}”→${kind} ${compact(item.href, 150)}${openMode}${safety}`;
+  });
+  return `安全链接目标分析（仅提取目标，未执行跳转）：${details.join('；')}${items.length > 8 ? `；其余 ${items.length - 8} 个链接见实采数据` : ''}。`;
+}
+
+function evidenceToModules(snapshot, scrollSamples = [], interactions = [], scrollMotion = [], links = []) {
   const modules = [];
-  const scrollSummary = scrollSamples.length ? `滚动实测：逐屏采集 ${scrollSamples.length} 个视口（${scrollSamples.map(sample => `${sample.position}%${sample.heading ? `“${compact(sample.heading, 32)}”` : ''}`).join('、')}）；只记录内容/懒加载可见性，不将普通滚动误报为已验证动画。` : '滚动触发状态未观察到有效视口样本，需人工复核。';
+  const scrollSummary = scrollSamples.length ? `滚动实测：逐屏采集 ${scrollSamples.length} 个视口（${scrollSamples.map(sample => `${sample.position}%${sample.heading ? `“${compact(sample.heading, 32)}”` : ''}`).join('、')}）。` : '滚动触发状态未观察到有效视口样本，需人工复核。';
+  const scrollMotionText = title => {
+    const relevant = scrollMotion.filter(item => item.section === title);
+    return relevant.length ? `滚动动画实测：${relevant.slice(0, 6).map(item => `${item.trigger}“${item.label}”：${item.change}${item.motion ? `（${item.motion}）` : ''}`).join('；')}。` : '未观察到可确认的滚动动画样式变化；普通滚动和仅内容出现不视为已验证动效。';
+  };
+  const linksFor = title => links.filter(item => item.section === title || (title === '页头与导航' && item.area === '页头与导航') || (title === '页脚' && item.area === '页脚'));
   const interactionText = (title) => {
     const relevant = interactions.filter(item => item.section === title || (title === '页头与导航' && item.area === '页头与导航') || (title === '页脚' && item.area === '页脚'));
     const observed = relevant.length ? `浏览器实测交互：${relevant.slice(0, 8).map(item => `${item.trigger}“${item.label}”${item.change ? `：${item.change}` : '：已触发，未检测到可见状态差异'}${item.motion ? `（${item.motion}）` : ''}`).join('；')}。` : '本模块未观察到可安全触发且有可见差异的交互；不代表模块没有交互。';
-    return `${scrollSummary}${observed}仅覆盖安全候选；未自动提交表单、执行交易、删除操作或访问链接目标，其它控件未验证。`;
+    return `${scrollSummary}${scrollMotionText(title)}${linkSummary(linksFor(title))}${observed}仅覆盖安全候选；未自动提交表单、购买、登录、删除、提交或访问链接目标，其它控件未验证。`;
   };
   if (snapshot.header.text || snapshot.navigation.length) {
     modules.push({
       title: '页头与导航',
       purpose: '观察事实：' + compact(snapshot.header.text || snapshot.navigation.map(item => item.label).join(' / '), 180),
       style: `观察事实：页头背景 ${snapshot.header.background}；导航区包含 ${snapshot.navigation.length} 个可见链接。`,
-      components: `实测组件：${snapshot.navigation.slice(0, 12).map(item => item.label).filter(Boolean).join('、') || '检测到页头区域，但未提取到有文本的导航链接'}。`,
+      components: `实测组件：${snapshot.navigation.slice(0, 12).map(item => item.label).filter(Boolean).join('、') || '检测到页头区域，但未提取到有文本的导航链接'}。${linkSummary(linksFor('页头与导航'))}`,
       interaction: `实测控件：页头内有 ${snapshot.header.buttons} 个按钮、${snapshot.navigation.length} 个链接。${interactionText('页头与导航')}`,
       analysis: '建议：检查桌面/移动导航是否保持一致的信息优先级，并验证菜单打开、关闭、键盘焦点及当前页状态。',
     });
@@ -67,7 +117,7 @@ function evidenceToModules(snapshot, scrollSamples = [], interactions = []) {
       title: label,
       purpose: `观察事实：区块标题为“${label}”。内容摘要：${compact(content, 200)}`,
       style: `观察事实：标题层级 ${section.headingLevel || '未识别'}；背景 ${section.background}；标题字号约 ${section.headingSize}px。区块含 ${section.images} 张图片，文字宽度与图文构图请结合截图核对。`,
-      components: `实测结构：${section.headings.join('、') || '未识别子标题'}；${section.buttons} 个按钮、${section.links} 个链接、${section.images} 张图片。${section.imageAlts.length ? `图片替代文本：${section.imageAlts.join('；')}` : '未提取到图片替代文本。'}`,
+      components: `实测结构：${section.headings.join('、') || '未识别子标题'}；${section.buttons} 个按钮、${section.links} 个链接、${section.images} 张图片。${section.imageAlts.length ? `图片替代文本：${section.imageAlts.join('；')}` : '未提取到图片替代文本。'}${linkSummary(linksFor(label))}`,
       interaction: `实测控件：该区块包含 ${section.buttons} 个按钮、${section.links} 个链接${section.forms ? `、${section.forms} 个表单` : ''}。${interactionText(label)}`,
       analysis: `设计判断（基于已采集结构的推断）：该区块围绕“${label}”组织内容。建议核对内容优先级、图文关系、键盘可达性及手机端顺序；此建议不是对隐藏交互的事实描述。`,
     });
@@ -97,7 +147,7 @@ function evidenceToModules(snapshot, scrollSamples = [], interactions = []) {
       title: '页脚',
       purpose: `观察事实：${compact(snapshot.footer.text, 180)}`,
       style: `观察事实：页脚背景 ${snapshot.footer.background}。`,
-      components: `实测结构：${snapshot.footer.links} 个链接、${snapshot.footer.buttons} 个按钮。`,
+      components: `实测结构：${snapshot.footer.links} 个链接、${snapshot.footer.buttons} 个按钮。${linkSummary(linksFor('页脚'))}`,
       interaction: `只识别页脚控件，链接目标及表单反馈未验证。${interactionText('页脚')}`,
       analysis: '建议核实联系信息、政策入口和版权内容，并确保所有链接有明确目的地。',
     });
@@ -160,6 +210,109 @@ export async function captureInteractiveEvidence(page) {
   }
   await clickHandles.dispose();
   return { evidence, hoverCandidates, safeClickCandidates:found.clicks.length };
+}
+
+export async function analyzeLinkTargets(page, sourceUrl) {
+  const all = new Map();
+  const positions = [0, .25, .5, .75, 1];
+  for (const fraction of positions) {
+    const scrollHeight = await page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - innerHeight));
+    await page.evaluate(y => scrollTo(0, y), Math.round(scrollHeight * fraction));
+    await page.waitForTimeout(140);
+    const visibleLinks = await page.evaluate(({ source, max }) => {
+    const visible = element => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && rect.width > 0 && rect.height > 0;
+    };
+    const classify = (rawHref, attributes) => {
+      const href = String(rawHref || '').trim();
+      const target = String(attributes.target || '').trim() || '_self';
+      const rel = String(attributes.rel || '').trim();
+      if (!href) return { kind: 'invalid', href: '', target, rel };
+      if (attributes.download) return { kind: 'download', href, target, rel };
+      if (/^mailto:/i.test(href)) return { kind: 'mailto', href, target, rel };
+      if (/^tel:/i.test(href)) return { kind: 'tel', href, target, rel };
+      if (/^javascript:/i.test(href)) return { kind: 'javascript', href, target, rel };
+      try {
+        const url = new URL(href, source);
+        if (!['http:', 'https:'].includes(url.protocol)) return { kind: 'invalid', href: url.href, target, rel };
+        const base = new URL(source);
+        const samePage = url.origin === base.origin && url.pathname === base.pathname && url.search === base.search && Boolean(url.hash);
+        return { kind: samePage ? 'same-page' : url.origin === base.origin ? 'same-origin' : 'external', href: url.href, target, rel };
+      } catch {
+        return { kind: 'invalid', href, target, rel };
+      }
+    };
+    const area = element => {
+      const region = element.closest('header,[role="banner"],footer,[role="contentinfo"],main section,main article,main [role="region"],section,article');
+      const heading = region?.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]');
+      return { area: region?.matches('header,[role="banner"]') ? '页头与导航' : region?.matches('footer,[role="contentinfo"]') ? '页脚' : '', section: (heading?.innerText || region?.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 100) };
+    };
+    return [...document.querySelectorAll('a[href]')].filter(visible).slice(0, max).map(anchor => ({
+      label: (anchor.innerText || anchor.getAttribute('aria-label') || anchor.title || anchor.getAttribute('href') || '').trim().replace(/\s+/g, ' ').slice(0, 90),
+      ...classify(anchor.getAttribute('href'), { target: anchor.target, rel: anchor.rel, download: anchor.hasAttribute('download') }),
+      ...area(anchor),
+    }));
+    }, { source: sourceUrl, max: MAX_LINK_TARGETS });
+    for (const item of visibleLinks) {
+      const key = `${item.section}|${item.label}|${item.href}|${item.kind}`;
+      if (!all.has(key) && all.size < MAX_LINK_TARGETS) all.set(key, item);
+    }
+  }
+  await page.evaluate(() => scrollTo(0, 0));
+  return [...all.values()];
+}
+
+export async function captureScrollMotionEvidence(page) {
+  const evidence = [];
+  const positions = [0, .2, .4, .6, .8, 1];
+  let previous = new Map();
+  for (const fraction of positions) {
+    const scrollHeight = await page.evaluate(() => Math.max(0, document.documentElement.scrollHeight - innerHeight));
+    const target = Math.round(scrollHeight * fraction);
+    await page.evaluate(y => scrollTo(0, y), target);
+    await page.waitForTimeout(420);
+    const states = await page.evaluate(() => {
+      const text = element => (element.innerText || element.getAttribute('aria-label') || element.getAttribute('alt') || '').replace(/\s+/g, ' ').trim().slice(0, 90);
+      const regionInfo = element => {
+        const region = element.closest('header,[role="banner"],footer,[role="contentinfo"],main section,main article,main [role="region"],section,article');
+        const heading = region?.querySelector('h1,h2,h3,h4,h5,h6,[role="heading"]');
+        return { area: region?.matches('header,[role="banner"]') ? '页头与导航' : region?.matches('footer,[role="contentinfo"]') ? '页脚' : '', section: (heading?.innerText || region?.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 100) };
+      };
+      const visible = element => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0 && rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+      };
+      const candidates = [...document.querySelectorAll('section,article,[role="region"],h1,h2,h3,h4,h5,h6,[data-scroll],[class*="reveal"],[class*="animate"]')].slice(0, 120);
+      return candidates.map((element, index) => {
+        const style = getComputedStyle(element);
+        const info = regionInfo(element);
+        const label = text(element) || `${element.tagName.toLowerCase()} ${index + 1}`;
+        const key = `${element.id || ''}|${element.tagName}|${index}|${label.slice(0, 42)}`;
+        return { key, label, ...info, visible: visible(element), opacity: style.opacity, transform: style.transform, filter: style.filter, animationName: style.animationName, animationDuration: style.animationDuration, animationDelay: style.animationDelay, animationTiming: style.animationTimingFunction, transitionDuration: style.transitionDuration, transitionDelay: style.transitionDelay, transitionTiming: style.transitionTimingFunction };
+      });
+    });
+    for (const state of states) {
+      const before = previous.get(state.key);
+      previous.set(state.key, state);
+      if (!before || before.section !== state.section) continue;
+      const changes = [];
+      for (const [label, key] of [['透明度', 'opacity'], ['位移', 'transform'], ['滤镜', 'filter']]) if (before[key] !== state[key]) changes.push(`${label} ${before[key]}→${state[key]}`);
+      const animationChanged = before.animationName !== state.animationName || before.animationDuration !== state.animationDuration || before.animationTiming !== state.animationTiming;
+      const transitionActive = state.transitionDuration && !/^0s(?:,\s*0s)*$/.test(state.transitionDuration);
+      if (!changes.length && !animationChanged) continue;
+      if (!changes.length && state.animationName === 'none') continue;
+      if (!changes.length && !transitionActive) continue;
+      const motion = state.animationName !== 'none'
+        ? `animation ${state.animationName} ${state.animationDuration} ${state.animationTiming}`
+        : transitionActive ? `transition ${state.transitionDuration}${state.transitionDelay !== '0s' ? ` + ${state.transitionDelay}` : ''} ${state.transitionTiming}` : '';
+      evidence.push({ trigger: `滚动至约 ${Math.round(fraction * 100)}%`, label: state.label, section: state.section, area: state.area, change: changes.join('；') || `动画状态 ${before.animationName}→${state.animationName}`, motion });
+    }
+  }
+  await page.evaluate(() => scrollTo(0, 0));
+  return evidence.slice(0, MAX_SCROLL_MOTION);
 }
 
 export async function analyzeReference(rawUrl, { playwright, executablePath } = {}) {
@@ -244,22 +397,25 @@ export async function analyzeReference(rawUrl, { playwright, executablePath } = 
     });
     const interactionRun = await captureInteractiveEvidence(page);
     const interactionEvidence = interactionRun.evidence;
+    const linkTargets = await analyzeLinkTargets(page, snapshot.finalUrl);
+    const scrollMotionEvidence = await captureScrollMotionEvidence(page);
     const desktopShot = await page.screenshot({ type: 'jpeg', quality: 62, fullPage: false, animations: 'disabled' });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(350);
     const mobile = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth, hasHorizontalOverflow: document.documentElement.scrollWidth > innerWidth + 2 }));
     const mobileShot = await page.screenshot({ type: 'jpeg', quality: 56, fullPage: false, animations: 'disabled' });
-    const modules = evidenceToModules(snapshot, scrollSamples, interactionEvidence);
+    const modules = evidenceToModules(snapshot, scrollSamples, interactionEvidence, scrollMotionEvidence, linkTargets);
     const warning = [];
     if (!response?.ok()) warning.push(`网页返回 HTTP ${response?.status() ?? '未知'}，部分内容可能未能加载。`);
     if (blockedRequests.length) warning.push(`为保护本地网络，已阻止 ${blockedRequests.length} 个指向内部地址的请求。`);
     if (mobile.hasHorizontalOverflow) warning.push('手机视口检测到横向溢出。');
     warning.push(`交互实测：扫描 ${interactionRun.hoverCandidates} 个悬停候选、${interactionRun.safeClickCandidates} 个安全点击候选，记录 ${interactionEvidence.length} 条可见状态变化；受权限限制的交互及未观察到差异的控件仍需人工检查。`);
+    warning.push(`链接目标分析：安全提取 ${linkTargets.length} 个可见链接，未跟随链接或执行跳转；滚动动画观察记录 ${scrollMotionEvidence.length} 条样式变化。`);
     if (!snapshot.sections.length) warning.push('未识别到清晰的语义区块；已按滚动视口采样归纳内容区段。');
     return {
       source: { requestedUrl: safeUrl, finalUrl: snapshot.finalUrl, title: snapshot.title, description: snapshot.description, analyzedAt: new Date().toISOString(), httpStatus: response?.status() ?? null },
       modules,
-      facts: { desktop: { viewport: '1440×1000', headingCount: snapshot.headings.length }, mobile: { viewport: '390×844', ...mobile }, body: snapshot.body, navigation: snapshot.navigation, controls: snapshot.controls, sampledViewports: scrollSamples.length, interactions: { hoverCandidates: interactionRun.hoverCandidates, safeClickCandidates: interactionRun.safeClickCandidates, observedChanges: interactionEvidence.length, evidence: interactionEvidence }, warnings: warning },
+      facts: { desktop: { viewport: '1440×1000', headingCount: snapshot.headings.length }, mobile: { viewport: '390×844', ...mobile }, body: snapshot.body, navigation: snapshot.navigation, controls: snapshot.controls, links: { count: linkTargets.length, targets: linkTargets }, sampledViewports: scrollSamples.length, scrollMotion: scrollMotionEvidence, interactions: { hoverCandidates: interactionRun.hoverCandidates, safeClickCandidates: interactionRun.safeClickCandidates, observedChanges: interactionEvidence.length, evidence: interactionEvidence }, warnings: warning },
       screenshots: { desktop: `data:image/jpeg;base64,${desktopShot.toString('base64')}`, mobile: `data:image/jpeg;base64,${mobileShot.toString('base64')}` },
       analysisMode: 'browser-observed',
     };

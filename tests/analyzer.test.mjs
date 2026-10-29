@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertPublicTarget, interactionDelta } from '../analyzer.mjs';
+import { assertPublicTarget, classifyLinkTarget, interactionDelta } from '../analyzer.mjs';
 import { filterKnowledge, knowledgeEntries } from '../knowledge-library.mjs';
 
 test('reference analyzer accepts public HTTP(S) URLs', async () => {
@@ -31,6 +31,15 @@ test('interaction evidence reports state, visual, direction, and CSS timing chan
   assert.match(delta.change, /阴影发生变化/);
   assert.match(delta.motion, /0.3s \+ 0.05s ease-out/);
   assert.match(delta.motion, /transform none→matrix/);
+});
+
+test('link target analysis classifies destinations without following them', () => {
+  const source = 'https://example.com/work/index.html';
+  assert.equal(classifyLinkTarget('#details', source).kind, 'same-page');
+  assert.equal(classifyLinkTarget('/contact', source).kind, 'same-origin');
+  assert.equal(classifyLinkTarget('https://other.example/contact', source, { target: '_blank', rel: 'noopener' }).kind, 'external');
+  assert.equal(classifyLinkTarget('mailto:hello@example.com').kind, 'mailto');
+  assert.equal(classifyLinkTarget('/file.pdf', source, { download: true }).kind, 'download');
 });
 
 test('knowledge search matches terms, definitions, and examples', () => {
