@@ -44,6 +44,9 @@ npm start
 - `analyzer.mjs`：公开网页校验和实采分析。
 - `server.mjs`：本地静态服务及 `/api/analyze` 接口。
 - `skills/web-design-analysis/SKILL.md`：可下载的通用网页设计分析技能。
+- 提示词工作台的 `DESIGN.md` 面板：可从 VoltAgent/awesome-design-md 加载 Apple、Claude、Vercel 规范，也可上传、粘贴、编辑和导出 Markdown；选中的规范作为视觉建议并入提示词。
+
+设计系统远程加载需要联网访问 `raw.githubusercontent.com`；网络不可用时，可先在 [VoltAgent/awesome-design-md](https://github.com/VoltAgent/awesome-design-md) 下载 `DESIGN.md` 后上传。本机浏览器会保存当前选中的文档，不会自动跨设备同步。页面实采与用户明确要求优先于设计系统建议；下载/复制提示词时 Markdown 规范内容会一并交付。
 
 运行检查：
 
