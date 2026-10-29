@@ -7,8 +7,8 @@
   <meta name="description" content="网页设计分析与跨 Agent 建站提示词工作台。拆解页面结构、组件、视觉和交互，生成可直接交给任意 Agent 的实施提示词。">
   <title>网页分析生成站 / 网页设计工作台</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-  <link rel="stylesheet" href="./styles.css?v=7e60c07-interactions-1">
-  <script type="module" src="./app.js?v=20261024-navigation-fix-1"></script>
+  <link rel="stylesheet" href="./styles.css?v=20261029-design-md-1">
+  <script type="module" src="./app.js?v=20261029-design-md-1"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">跳转到工作区</a>
@@ -118,6 +118,12 @@
           <div class="asset-library-heading"><span data-asset-count>尚未添加素材</span><span>提示词会列出素材用途；生成网页前，请把要用的文件下载并放入 Agent 项目</span></div>
           <div class="asset-list" data-asset-list></div>
         </section>
+        <section class="design-system-panel" aria-labelledby="design-system-title">
+          <div class="custom-assets-heading"><div><span class="panel-index">DESIGN SYSTEM / OPTIONAL RULESET</span><h2 id="design-system-title">DESIGN.md 设计系统</h2><p>选择上游精选规范，或上传并编辑自己的 Markdown。选中的内容会作为“视觉建议”加入提示词，不会覆盖网页实采事实。</p></div><a class="small-button design-source-link" href="https://github.com/VoltAgent/awesome-design-md" target="_blank" rel="noreferrer">浏览 GitHub ↗</a></div>
+          <div class="design-system-controls"><label class="field-label" for="design-system-preset">上游精选 <span>按需从 GitHub 加载完整文档</span><select id="design-system-preset" class="text-control"><option value="">选择设计系统…</option><option value="apple">Apple · 摄影优先 / 极简</option><option value="claude">Claude · 温暖编辑风</option><option value="vercel">Vercel · 黑白技术风</option></select></label><button class="small-button" type="button" data-load-design-system>加载 DESIGN.md</button><label class="upload-button design-upload" for="design-md-file">↑ 上传 .md</label><input id="design-md-file" class="visually-hidden" type="file" accept=".md,text/markdown,text/plain"><button class="small-button" type="button" data-download-design-md disabled>↓ 导出规范</button></div>
+          <label class="field-label design-md-label" for="design-md-content">当前设计规范 <span data-design-md-status>未选择；可以粘贴或编辑 Markdown</span></label><textarea id="design-md-content" class="design-md-editor" rows="9" spellcheck="false" placeholder="# DESIGN.md&#10;&#10;粘贴设计规则，或从上方加载一份精选规范。建议覆盖视觉氛围、颜色、字体、布局、组件、动效与响应式。"></textarea>
+          <p class="design-system-attribution">精选文件来源：<a href="https://github.com/VoltAgent/awesome-design-md" target="_blank" rel="noreferrer">VoltAgent/awesome-design-md</a>（MIT）。加载需要网络；也可上传本地文件离线使用。提示词中的设计系统只作为视觉建议，已实测的网页结构与交互证据优先。</p>
+        </section>
         <div class="prompt-layout">
           <aside class="prompt-options">
             <div class="panel-heading"><div><span class="panel-index">PROMPT SETTINGS</span><h2>交付方式</h2></div></div>
@@ -141,9 +147,9 @@
         <section class="guide-section" id="guide-steps" aria-labelledby="guide-steps-title"><div class="guide-section-heading"><div><span class="panel-index">THE STANDARD OPERATING PROCEDURE</span><h2 id="guide-steps-title">完整使用流程</h2><p>把分析当作“采集证据—人工判断—明确交付”的过程，不要跳过校对。</p></div><span class="guide-section-mark">01—06</span></div>
           <div class="guide-steps-grid">
             <article class="guide-step-card"><span class="guide-step-number">01</span><div><span class="guide-step-tag">准备参考与目标</span><h3>先说清楚要研究什么</h3><p>进入「网页分析」，填入无需登录即可访问的公开网址，选择最终要制作的页面类型，并补充目标用户、页面目标、期望色调、设备范围及你在浏览时观察到的细节。</p><ul><li>优先选一个结构完整、能公开访问的具体页面。</li><li>写下你希望借鉴的布局/氛围，也写明不想照搬的内容。</li><li>网址会交给当前分析服务访问；勿提交内网、登录页或含敏感信息的链接。</li></ul><a href="#workspace" data-guide-go="analysis">去网页分析 ↗</a></div></article>
-            <article class="guide-step-card"><span class="guide-step-number">02</span><div><span class="guide-step-tag">发起真实采集</span><h3>实采证据不是设计结论</h3><p>点击「实际分析参考网页」，等待状态反馈。成功时可查看桌面/手机截图和采集到的区块、文字、链接、图片、控件等信息；若目标站不可达，先检查网址或换一个公开页面。</p><ul><li>工具不登录目标站，也不会替你点击购买、提交表单或触发隐藏菜单。</li><li>未被实际触发的 hover、滚动动画等状态，请在观察栏手动补充。</li><li>截图和可见元素是证据；审美判断、转化原因仍需你核对。</li></ul><button class="guide-inline-button" type="button" data-help>查看采集范围说明 ↗</button></div></article>
+            <article class="guide-step-card"><span class="guide-step-number">02</span><div><span class="guide-step-tag">发起真实采集</span><h3>实采证据不是设计结论</h3><p>点击「实际分析参考网页」，等待状态反馈。成功时可查看桌面/手机截图和采集到的区块、文字、链接、图片、控件等信息；若目标站不可达，先检查网址或换一个公开页面。</p><ul><li>工具不登录目标站、不提交表单或购买；会滚动页面、悬停候选控件，并有限点击手风琴/标签等安全、可恢复控件，记录观察到的状态变化。</li><li>采集不覆盖所有动画或隐藏状态；未记录变化、受限制或危险的交互需手动补充，不得写成已实测。</li><li>截图和可见元素是证据；审美判断、转化原因仍需你核对。</li></ul><button class="guide-inline-button" type="button" data-help>查看采集范围说明 ↗</button></div></article>
             <article class="guide-step-card"><span class="guide-step-number">03</span><div><span class="guide-step-tag">编辑独立分析工作区</span><h3>逐模块核对并补全</h3><p>检查每张模块卡片的“页面目的、风格与排版、组件与信息层级、动效与交互、专业判断”。将事实和推断分开；可直接改字、添加缺失模块、删除不适用模块，并用上下箭头调整页面顺序。</p><ul><li>点「恢复建议模块」可回到该页面类型的默认提纲。</li><li>点击任一输入即可修改；分析会自动保存到当前浏览器。</li><li>不要把自动采集不到的动效写成已验证事实。</li></ul><a href="#workspace" data-guide-go="analysis">回到模块分析 ↗</a></div></article>
-            <article class="guide-step-card"><span class="guide-step-number">04</span><div><span class="guide-step-tag">添加自己的内容</span><h3>让生成结果属于你</h3><p>进入「提示词工作台」，在资料框粘贴真实简历、公司、品牌、产品和项目事实；上传图片或附件后，标记它的用途并补充备注。生成网页前，把需要用到的文件下载到 Agent 能访问的项目目录。</p><ul><li>浏览器内的文本和文件保存在本机，不会自动随提示词传给 Agent。</li><li>PDF/DOCX 附件不会自动提取全文；重要事实请复制到资料框。</li><li>只填写已确认的真实信息，避免 Agent 编造资历、销量或客户评价。</li></ul><a href="#prompt" data-guide-go="prompt">整理素材与资料 ↗</a></div></article>
+            <article class="guide-step-card"><span class="guide-step-number">04</span><div><span class="guide-step-tag">添加自己的内容与设计规则</span><h3>让生成结果属于你</h3><p>进入「提示词工作台」，粘贴真实简历、公司、品牌、产品和项目事实；上传图片或附件并注明用途。需要 Agent 使用的素材请下载到 Agent 能访问的项目目录。再到「DESIGN.md 设计系统」选择 Apple、Claude 或 Vercel 规范并从 GitHub 加载，或上传/粘贴自己的 Markdown；可在文本区直接编辑后导出 DESIGN.md。</p><ul><li>选中的设计系统会自动加入生成提示词，作为可选视觉建议；网页实采事实、用户明确要求优先，不能把文档建议冒充参考站真实效果。</li><li>远程加载需要网络；失败时可从 GitHub 下载原文件后上传。设计规范和文字草稿保存在当前浏览器，不会自动跨设备同步。</li><li>PDF/DOCX 附件不会自动提取全文；重要事实请复制到资料框。只填写已确认信息，不要上传机密或未授权文件。</li></ul><a href="#prompt" data-guide-go="prompt">添加资料与设计系统 ↗</a></div></article>
             <article class="guide-step-card"><span class="guide-step-number">05</span><div><span class="guide-step-tag">选择交付模式并生成</span><h3>按 Agent 的任务选择模式</h3><p>「分析并搭建」让 Agent 再次检查参考页并实现；「按现有分析搭建」使用你编辑好的模块；「只分析网页」只交付报告。填写 Agent 名称、现有技术栈和必须遵守的限制，再生成可编辑提示词。</p><ul><li>复制提示词到 Codex、Gemini、Claude Code 等 Agent，或导出 Markdown 文件。</li><li>上传素材需与 Agent 项目一并提供；提示词会说明用途，不会嵌入图片二进制。</li><li>提示词生成后仍可手动修改，交付前检查目标、内容事实和组件可编辑要求。</li></ul><a href="#prompt" data-guide-go="prompt">打开提示词工作台 ↗</a></div></article>
             <article class="guide-step-card"><span class="guide-step-number">06</span><div><span class="guide-step-tag">复盘、学习与迭代</span><h3>把作品转化成设计方法</h3><p>生成网页后，对照原分析检查模块是否齐全、交互是否真实可用、手机布局是否合理。回到分析区或提示词中修订，再让 Agent 迭代；在「设计知识」学习如何把主观偏好写成可观察、可验证的要求。</p><ul><li>将“我想要有质感”改写为字体、留白、对比、材质和反馈等具体线索。</li><li>指出具体屏幕、组件、触发方式和预期结果，Agent 更容易执行。</li><li>逐轮验证，不要只凭首屏截图验收长页和移动端体验。</li></ul><a href="#vibehub" data-guide-go="vibehub">学习设计知识 ↗</a></div></article>
           </div>

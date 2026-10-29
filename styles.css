@@ -347,6 +347,16 @@ html,body,.app-shell,.main-area{background:var(--paper);color:var(--ink)}
 .analysis-error-dismiss{padding:5px 8px;border:1px solid #604b51;background:transparent;color:#d6c5ca;font-size:10px}
 .analysis-error-dismiss:hover{background:#413138;color:#fff}
 .toast{max-width:min(420px,calc(100vw - 30px));padding:11px 14px;border:1px solid #59658f;background:#292d3b;color:#f2f3fa;font-size:12px;line-height:1.55;box-shadow:0 8px 28px #0005}
+/* DESIGN.md import and prompt composition */
+.design-system-panel{margin-bottom:16px;padding:18px;border:1px solid var(--line-dark);background:var(--surface)}
+.design-source-link{align-self:flex-start;white-space:nowrap}
+.design-system-controls{display:grid;grid-template-columns:minmax(220px,1fr) auto auto auto;align-items:end;gap:9px;margin-top:14px}
+.design-system-controls .field-label{margin:0}.design-system-controls select{width:100%;margin-top:6px}.design-upload{min-height:36px}
+.design-md-label{display:flex;justify-content:space-between;gap:12px;margin-top:14px}.design-md-label>span{font-weight:400;text-align:right}
+.design-md-editor{display:block;width:100%;min-height:210px;max-height:520px;resize:vertical;margin-top:7px;padding:12px;border:1px solid var(--line-dark);background:#202127;color:var(--ink);font:11px/1.75 var(--mono);tab-size:2}
+.design-system-attribution{margin-top:8px;color:var(--muted);font-size:10px;line-height:1.65}.design-system-attribution a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}.design-system-controls button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:800px){.design-system-controls{grid-template-columns:1fr 1fr}.design-system-controls .field-label{grid-column:1/-1}.design-source-link{margin-top:8px}}
+@media(max-width:540px){.design-system-panel{padding:12px}.design-system-controls{grid-template-columns:1fr 1fr}.design-system-controls>*{min-width:0}.design-md-label{display:block}.design-md-label>span{display:block;text-align:left;margin-top:3px}.design-md-editor{min-height:180px;font-size:10px}.design-system-attribution{font-size:9px}}
 @media(max-width:540px){.analysis-error{grid-template-columns:23px minmax(0,1fr);gap:9px;padding:11px}.analysis-error-icon{width:22px;height:22px}.analysis-error-content h3{font-size:12px}.analysis-error-content p{font-size:11px}.analysis-error-actions{flex-wrap:wrap;gap:10px}.toast{right:12px;bottom:12px}}
 
 /* Horizontal workspace navigation */
