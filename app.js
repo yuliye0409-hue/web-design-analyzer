@@ -432,7 +432,7 @@ async function startAnalysis() {
     const message = staticHosting
       ? '当前打开的是 GitHub Pages 静态版，页面已尝试连接本机分析服务但未成功。请在项目根目录运行 npm install、npm run browser:install、npm start，然后刷新当前页面；此失败不会覆盖已有分析。'
       : error.message || '网页分析失败，请检查网址或分析服务。此失败不会覆盖已有分析。';
-    $('[data-analysis-error-title]').textContent = staticHosting ? '线上页面不能执行网页实采' : '网页实采未完成';
+    $('[data-analysis-error-title]').textContent = staticHosting ? '本机分析服务未连接' : '网页实采未完成';
     $('[data-analysis-error-message]').textContent = message;
     analysisError.hidden = false;
     analysisError.scrollIntoView({ behavior:reducedMotion.matches?'instant':'smooth', block:'nearest' });
