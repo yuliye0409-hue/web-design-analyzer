@@ -14,6 +14,7 @@ function positiveInteger(value, fallback) {
 const rateWindowMs = positiveInteger(process.env.RATE_WINDOW_MS,60000);
 const rateLimit = positiveInteger(process.env.RATE_LIMIT,6);
 const maxConcurrent = Math.min(4,positiveInteger(process.env.MAX_CONCURRENT_ANALYSES,1));
+const corsOrigin = process.env.CORS_ORIGIN || '*';
 const rateBuckets = new Map();
 let activeAnalyses = 0;
 function installedBrowserPath() {
@@ -51,8 +52,17 @@ async function readJson(req, maxBytes = 8192) {
 }
 
 function sendJson(res, status, payload) {
+  setCorsHeaders(res);
   res.writeHead(status, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff' });
   res.end(res.req?.method === 'HEAD' ? undefined : JSON.stringify(payload));
+}
+
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin',corsOrigin);
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Private-Network','true');
+  res.setHeader('Access-Control-Max-Age','600');
 }
 
 function clientAddress(req) {
@@ -82,6 +92,11 @@ const server = http.createServer(async (req,res) => {
       return sendJson(res,200,{status:'ok'});
     }
     if (pathname === '/api/analyze') {
+      if (req.method === 'OPTIONS') {
+        setCorsHeaders(res);
+        res.writeHead(204);
+        return res.end();
+      }
       if (req.method !== 'POST') return sendJson(res,405,{error:'仅支持 POST 请求。'});
       const address = clientAddress(req);
       if (!withinRateLimit(address)) {

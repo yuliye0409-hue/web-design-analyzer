@@ -34,6 +34,11 @@ test('production server exposes health checks and limits public analysis request
     const health = await fetch(`${origin}/healthz`);
     assert.deepEqual(await health.json(),{status:'ok'});
 
+    const preflight = await fetch(`${origin}/api/analyze`,{method:'OPTIONS',headers:{Origin:'https://yuliye0409-hue.github.io','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}});
+    assert.equal(preflight.status,204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'),'*');
+    assert.equal(preflight.headers.get('access-control-allow-private-network'),'true');
+
     const page = await fetch(origin);
     assert.equal(page.status,200);
     assert.match(await page.text(),/网页分析生成站/);

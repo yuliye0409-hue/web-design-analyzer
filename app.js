@@ -366,6 +366,26 @@ function resetAnalysisTask() {
   updatePreview(currentInputs());
   saveState();
 }
+function analysisEndpoints() {
+  const endpoints = ['/api/analyze'];
+  const isStaticPreview = location.hostname === 'github.io' || location.hostname.endsWith('.github.io') || location.protocol === 'file:';
+  if (isStaticPreview) endpoints.push('http://127.0.0.1:4173/api/analyze');
+  return endpoints;
+}
+async function requestAnalysis(url) {
+  const endpoints = analysisEndpoints();
+  let lastError;
+  for (const [index, endpoint] of endpoints.entries()) {
+    try {
+      const response = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+      if ((response.status === 404 || response.status === 405) && index < endpoints.length - 1) continue;
+      return response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('网页实采服务当前不可用。');
+}
 async function startAnalysis() {
   const data = currentInputs();
   const submit = $('[data-submit-analysis]');
@@ -376,7 +396,7 @@ async function startAnalysis() {
   submit.innerHTML = data.url ? '正在打开并采集网页…' : '正在整理通用框架…';
   try {
     if (data.url?.trim()) {
-      const response = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:data.url.trim()}) });
+      const response = await requestAnalysis(data.url.trim());
       const contentType = response.headers.get('content-type') || '';
       analysisPayload = contentType.includes('application/json') ? await response.json() : null;
       if (!response.ok) throw new Error(analysisPayload?.error || `网页实采服务当前不可用（HTTP ${response.status}）。GitHub Pages 仅发布静态界面；要分析参考网址，请在项目根目录运行 npm install、npm run browser:install 和 npm start 后访问本地工作台。`);
@@ -410,7 +430,7 @@ async function startAnalysis() {
   } catch (error) {
     const staticHosting = /HTTP 405|GitHub Pages|fetch/i.test(error.message || '');
     const message = staticHosting
-      ? '当前打开的是 GitHub Pages 静态版，不能运行网页实采服务。请在项目根目录运行 npm install、npm run browser:install、npm start，再打开 http://127.0.0.1:4173/；此失败不会覆盖已有分析。'
+      ? '当前打开的是 GitHub Pages 静态版，页面已尝试连接本机分析服务但未成功。请在项目根目录运行 npm install、npm run browser:install、npm start，然后刷新当前页面；此失败不会覆盖已有分析。'
       : error.message || '网页分析失败，请检查网址或分析服务。此失败不会覆盖已有分析。';
     $('[data-analysis-error-title]').textContent = staticHosting ? '线上页面不能执行网页实采' : '网页实采未完成';
     $('[data-analysis-error-message]').textContent = message;

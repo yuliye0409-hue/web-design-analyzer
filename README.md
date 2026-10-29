@@ -60,6 +60,6 @@ Windows 本机如果 `npm run browser:install` 下载 Chromium 失败，服务�
 
 ## 发布
 
-推送到 `main` 分支会触发 `.github/workflows/pages.yml` 并发布静态界面到 GitHub Pages。GitHub Pages 不运行 Node/Chromium API，因此线上页面是界面预览；需要实采分析时，可在本机运行上方 Node 服务，或将整站作为 Docker Web 服务同源部署。跨电脑时，代码/SOP 由 Git 同步，浏览器草稿和 IndexedDB 附件不会自动同步。
+推送到 `main` 分支会触发 `.github/workflows/pages.yml` 并发布静态界面到 GitHub Pages。GitHub Pages 不运行 Node/Chromium API；页面会在检测到 Pages 静态版时自动回退请求本机 `http://127.0.0.1:4173/api/analyze`，因此本机启动 Node 服务后可以继续使用当前 Pages 地址。也可以将整站作为 Docker Web 服务同源部署。跨电脑时，代码/SOP 由 Git 同步，浏览器草稿和 IndexedDB 附件不会自动同步。
 
 如需让访客在线实采，可将仓库作为同源 Docker Web 服务部署。见 [DEPLOY.md](DEPLOY.md)；本地可用 `docker compose up --build` 验证。Docker 服务同时托管前端和 `/api/analyze`，GitHub Pages 仍然只是静态预览。

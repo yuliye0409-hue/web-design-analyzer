@@ -1,6 +1,6 @@
 # Deploy the analyzer
 
-The GitHub Pages workflow publishes a static preview only. To let visitors run real browser analysis, deploy this repository as one Docker web service so the same origin serves the UI and `/api/analyze`.
+The GitHub Pages workflow publishes a static preview only. The Pages UI can fall back to a local service at `http://127.0.0.1:4173/api/analyze` when you run `npm start`; this is useful for personal use. To let all visitors run real browser analysis, deploy this repository as one Docker web service so the same origin serves the UI and `/api/analyze`.
 
 ## Run with Docker Compose
 
