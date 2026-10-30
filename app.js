@@ -79,7 +79,10 @@ function esc(value) {
   return String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
 }
 function currentInputs() {
-  return Object.fromEntries(new FormData(form).entries());
+  const inputs = Object.fromEntries(new FormData(form).entries());
+  inputs.url = inputs.referenceTarget || '';
+  delete inputs.referenceTarget;
+  return inputs;
 }
 function titleCase(value) { return String(value || '').trim() || '其他网页'; }
 function moduleStyle(title,pageType) {
@@ -312,7 +315,10 @@ function restoreState() {
   try {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
     if (!state) return;
-    for (const [name,value] of Object.entries(state.input || {})) if (form.elements[name]) form.elements[name].value = value;
+    for (const [name,value] of Object.entries(state.input || {})) {
+      const field = form.elements[name === 'url' ? 'referenceTarget' : name];
+      if (field) field.value = value;
+    }
     $('#custom-brief').value = state.customBrief || '';
     $('#design-md-content').value = state.designSystem || '';
     designSystemSource = state.designSystemSource || '';
