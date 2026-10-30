@@ -9,7 +9,7 @@
   <link rel="icon" type="image/x-icon" sizes="64x64" href="./favicon.ico?v=3">
   <link rel="icon" type="image/svg+xml" sizes="any" href="./favicon.svg?v=3">
   <link rel="apple-touch-icon" href="./favicon.svg?v=3">
-  <link rel="stylesheet" href="./styles.css?v=apple-design-preview-7">
+  <link rel="stylesheet" href="./styles.css?v=apple-design-preview-8">
   <script type="module" src="./app.js?v=assets-constraints-1"></script>
 </head>
 <body>
@@ -54,9 +54,9 @@
         <div class="workspace-grid">
           <section class="input-panel" aria-labelledby="reference-title">
             <div class="panel-heading"><div><span class="panel-index">A / INPUT</span><h2 id="reference-title">参考与目标</h2></div><span class="panel-mark">↙</span></div>
-            <form id="analysis-form">
+            <form id="analysis-form" autocomplete="off">
               <label class="field-label" for="reference-url">参考网页网址 <span>输入公开网址后，点击“生成结构分析”将实际打开并采集页面</span></label>
-              <div class="url-control"><span aria-hidden="true">↗</span><input id="reference-url" name="url" type="url" placeholder="https://example.com" autocomplete="url"><button type="button" class="clear-url" data-clear-url aria-label="清空网址" title="清空网址">×</button></div>
+              <div class="url-control"><span aria-hidden="true">↗</span><input id="reference-url" name="url" type="url" inputmode="url" placeholder="https://example.com" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"><button type="button" class="clear-url" data-clear-url aria-label="清空网址" title="清空网址">×</button></div>
 
               <label class="field-label" for="page-type">要搭建的网页类型</label>
               <div class="select-wrap"><select id="page-type" name="pageType"><option value="个人作品集">个人作品集</option><option value="品牌官网">品牌官网</option><option value="电商商品详情页">电商商品详情页</option><option value="营销落地页">营销落地页</option><option value="SaaS 产品网站">SaaS 产品网站</option><option value="编辑部 / 杂志网站">编辑部 / 杂志网站</option><option value="其他网页">其他网页</option></select><span>⌄</span></div>
