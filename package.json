@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test",
+    "test:ui": "node --test tests/ui-language.browser.mjs",
     "browser:install": "playwright install chromium"
   },
   "dependencies": {

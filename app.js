@@ -1,3 +1,5 @@
+import { additionalUiTranslations, translateUiTemplate, englishGettingStartedChecklist } from './ui-i18n.mjs?v=english-complete-1';
+
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const STORAGE_KEY = 'web-design-analyzer-v1';
@@ -50,8 +52,12 @@ const UI_TRANSLATIONS = new Map([
   ['Apple · 摄影优先 / 极简','Apple · Photography-first / minimal'],['Claude · 温暖编辑风','Claude · Warm editorial'],['Vercel · 黑白技术风','Vercel · Monochrome technology'],
   ['选择设计系统…','Choose a design system…'],['未选择；可以粘贴或编辑 Markdown','None selected; paste or edit Markdown'],['复制上手清单','Copy getting-started checklist'],
   ['打开提示词工作台','Open Prompt Workbench'],['回到模块分析','Back to module analysis'],['去网页分析','Go to Web Analysis'],['继续：生成建站提示词','Continue: generate build prompt'],
+  ...additionalUiTranslations,
 ]);
-const UI_REVERSE_TRANSLATIONS = new Map([...UI_TRANSLATIONS].map(([zh,en])=>[en.trim(),zh.trim()]));
+// Remember the original copy per node/attribute. Reversing an English dictionary
+// loses information when two Chinese phrases share the same English translation.
+const uiTextSources = new WeakMap();
+const uiAttributeSources = new WeakMap();
 const UI_THEME_COLORS = {
   blue:{ accent:'#0066cc',label:{zh:'蓝色主题',en:'Blue theme'} },
   teal:{ accent:'#16827a',label:{zh:'青绿色主题',en:'Teal theme'} },
@@ -130,34 +136,56 @@ function saveUiPreferences() {
 }
 function translateUiValue(value,language) {
   const trimmed = value.trim();
-  if (!trimmed) return value;
-  const translation = language === 'en' ? UI_TRANSLATIONS.get(trimmed) : UI_REVERSE_TRANSLATIONS.get(trimmed);
-  if (!translation) return value;
+  if (!trimmed || language !== 'en') return value;
+  const translate = text => {
+    const exact = UI_TRANSLATIONS.get(text);
+    if (exact) return exact;
+    const decorated = text.match(/^([＋+↓↑↘↗]\s*)?(.*?)(\s*[↗↘])?$/s);
+    if (decorated && UI_TRANSLATIONS.has(decorated[2])) return `${decorated[1] || ''}${UI_TRANSLATIONS.get(decorated[2])}${decorated[3] || ''}`;
+    return translateUiTemplate(text, nested => UI_TRANSLATIONS.get(nested) || translateUiTemplate(nested));
+  };
+  const translation = translate(trimmed);
   const start = value.indexOf(trimmed);
   return `${value.slice(0,start)}${translation}${value.slice(start + trimmed.length)}`;
 }
 function translateUi(root=document.body) {
+  // Option labels may change language, but their saved values must never change.
+  const elements = [root,...(root.querySelectorAll?.('*') || [])];
+  elements.forEach(element=>{
+    if (element.matches?.('option:not([value])')) element.setAttribute('value',element.textContent);
+  });
   const walker = document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-  const skipped = 'input,textarea,script,style,code,pre,[contenteditable="true"],.prompt-editor,.design-md-editor,.module-fields,.asset-list,.term-list,.knowledge-card,.preview-canvas';
+  const skipped = 'input,textarea,script,style,code,pre,[contenteditable="true"],[data-i18n-ignore],.term-list,.knowledge-card,[data-preview-url],[data-preview-title],[data-preview-section]';
   while (walker.nextNode()) {
     const node = walker.currentNode;
     if (node.parentElement?.closest(skipped)) continue;
-    const translated = translateUiValue(node.nodeValue,uiPreferences.language);
+    const previous = uiTextSources.get(node);
+    const source = previous && previous.rendered === node.nodeValue ? previous.source : node.nodeValue;
+    const translated = translateUiValue(source,uiPreferences.language);
+    uiTextSources.set(node,{source,rendered:translated});
     if (translated !== node.nodeValue) node.nodeValue = translated;
   }
-  const attributeNames = ['title','aria-label','aria-description','placeholder'];
-  root.querySelectorAll?.('*').forEach(element=>{
-    if (element.matches(skipped)) return;
+  const attributeNames = ['title','aria-label','aria-description','placeholder','alt'];
+  elements.forEach(element=>{
+    if (!element.getAttribute || element.closest('[data-i18n-ignore]')) return;
+    const originals = uiAttributeSources.get(element) || new Map();
     for (const name of attributeNames) {
       const value = element.getAttribute(name);
-      if (value) element.setAttribute(name,translateUiValue(value,uiPreferences.language));
+      if (!value) continue;
+      const previous = originals.get(name);
+      const source = previous && previous.rendered === value ? previous.source : value;
+      const translated = translateUiValue(source,uiPreferences.language);
+      originals.set(name,{source,rendered:translated});
+      if (translated !== value) element.setAttribute(name,translated);
     }
+    uiAttributeSources.set(element,originals);
   });
   document.documentElement.lang = uiPreferences.language === 'en' ? 'en' : 'zh-CN';
   document.title = uiPreferences.language === 'en' ? 'Web Design Analyzer / Design Workbench' : '网页分析生成站 / 网页设计工作台';
   const languageButton = $('[data-language-toggle]');
   const switchLanguageLabel = uiPreferences.language === 'en' ? 'Switch to Chinese' : 'Switch to English';
-  languageButton.textContent = uiPreferences.language === 'en' ? '中文' : 'EN';
+  const languageLabel = uiPreferences.language === 'en' ? '中文' : 'EN';
+  if (languageButton.textContent !== languageLabel) languageButton.textContent = languageLabel;
   languageButton.setAttribute('aria-label',switchLanguageLabel);
   languageButton.title = switchLanguageLabel;
   const themeLabel = uiPreferences.language === 'en'
@@ -165,7 +193,8 @@ function translateUi(root=document.body) {
     : (uiPreferences.theme === 'dark' ? '切换浅色模式' : '切换深色模式');
   $('[data-theme-toggle]').setAttribute('aria-label',themeLabel);
   $('[data-theme-toggle]').title = $('[data-theme-toggle]').getAttribute('aria-label');
-  $('[data-theme-icon]').textContent = uiPreferences.theme === 'dark' ? '☀' : '☾';
+  const themeIcon = uiPreferences.theme === 'dark' ? '☀' : '☾';
+  if ($('[data-theme-icon]').textContent !== themeIcon) $('[data-theme-icon]').textContent = themeIcon;
   $('[data-accent-toggle]').setAttribute('aria-label',uiPreferences.language === 'en' ? 'Choose accent color' : '切换主题色');
   $('[data-accent-toggle]').title = $('[data-accent-toggle]').getAttribute('aria-label');
   $$('.accent-choice').forEach(button=>{
@@ -185,10 +214,14 @@ function applyUiPreferences() {
 function initUiPreferences() {
   applyUiPreferences();
   const observer = new MutationObserver(records=>{
+    const roots = new Set();
     for (const record of records) {
-      if (record.type === 'characterData') translateUi(record.target.parentElement || document.body);
-      else record.addedNodes.forEach(node=>{if (node.nodeType===Node.ELEMENT_NODE) translateUi(node);});
+      if (record.type === 'characterData') roots.add(record.target.parentElement);
+      else record.addedNodes.forEach(node=>{
+        roots.add(node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement);
+      });
     }
+    roots.forEach(root=>{if (root?.isConnected) translateUi(root);});
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
   $('[data-theme-toggle]').addEventListener('click',()=>{
@@ -373,8 +406,8 @@ function renderAssets() {
   const list = $('[data-asset-list]');
   $('[data-asset-count]').textContent = customAssets.length ? `${customAssets.length} 项本地素材` : '尚未添加素材';
   list.innerHTML = customAssets.map(asset => `<article class="asset-item" data-asset-id="${esc(asset.id)}">
-    <div class="asset-preview">${asset.type.startsWith('image/') ? `<img data-asset-image alt="${esc(asset.name)}">` : `<span>${esc((asset.name.split('.').pop() || 'FILE').slice(0,5).toUpperCase())}</span>`}</div>
-    <div class="asset-content"><div class="asset-heading"><strong title="${esc(asset.name)}">${esc(asset.name)}</strong><span>${formatBytes(asset.size)}</span></div>
+    <div class="asset-preview">${asset.type.startsWith('image/') ? `<img data-asset-image data-i18n-ignore alt="${esc(asset.name)}">` : `<span>${esc((asset.name.split('.').pop() || 'FILE').slice(0,5).toUpperCase())}</span>`}</div>
+    <div class="asset-content"><div class="asset-heading"><strong data-i18n-ignore title="${esc(asset.name)}">${esc(asset.name)}</strong><span>${formatBytes(asset.size)}</span></div>
       <div class="asset-controls"><label>用途<select data-asset-role aria-label="${esc(asset.name)} 的用途"><option ${asset.role==='网页图片 / 视觉素材'?'selected':''}>网页图片 / 视觉素材</option><option ${asset.role==='个人简历'?'selected':''}>个人简历</option><option ${asset.role==='公司 / 品牌信息'?'selected':''}>公司 / 品牌信息</option><option ${asset.role==='产品资料'?'selected':''}>产品资料</option><option ${asset.role==='项目案例'?'selected':''}>项目案例</option><option ${asset.role==='其他资料'?'selected':''}>其他资料</option></select></label>
       <label>使用备注<input data-asset-note value="${esc(asset.note || '')}" placeholder="说明替换哪个模块、需保留什么内容" aria-label="${esc(asset.name)} 的使用备注"></label></div>
       <div class="asset-actions"><button type="button" class="small-button" data-asset-download>下载到项目</button><button type="button" class="text-button" data-asset-remove>移除</button></div>
@@ -555,7 +588,7 @@ async function requestAnalysis(url) {
 async function startAnalysis() {
   const data = currentInputs();
   const submit = $('[data-submit-analysis]');
-  const originalLabel = submit.innerHTML;
+  const originalLabel = '实际分析参考网页 <span>↗</span>';
   let analysisPayload = null;
   analysisError.hidden = true;
   submit.disabled = true;
@@ -647,7 +680,7 @@ $$('[data-dismiss-analysis-error]').forEach(button => button.addEventListener('c
 $('[data-guide-demo]').addEventListener('click', () => { loadDemo(); navigate('analysis'); });
 $('[data-guide-copy]').addEventListener('click', async () => {
   const checklist = '网页分析生成站｜上手清单\n1. 选择可公开访问的参考网页，填写页面类型、用户和目标。\n2. 点击实际分析，检查桌面/手机截图与实采证据。\n3. 逐模块修订目的、视觉、组件、交互和专业判断；补充未实测状态。\n4. 在提示词工作台填写真实资料，上传并标注素材用途。\n5. 选择任务模式与技术约束，生成后检查提示词。\n6. 复制给 Agent 或导出 Markdown；所需素材另行下载并放入 Agent 项目。\n注意：GitHub Pages 不运行实采接口；新电脑需安装 Node.js、依赖和 Chromium。草稿/附件留在本机，不会自动跨设备同步。';
-  try { await navigator.clipboard.writeText(checklist); notify('上手清单已复制'); }
+  try { await navigator.clipboard.writeText(uiPreferences.language === 'en' ? englishGettingStartedChecklist : checklist); notify('上手清单已复制'); }
   catch { notify('浏览器未开放剪贴板；请按 SOP 逐步操作'); }
 });
 moduleList.addEventListener('input', () => { modules=modulesFromUI(); buildPrompt(); });
