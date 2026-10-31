@@ -697,6 +697,7 @@ html[data-theme="dark"] .sidebar,html[data-theme="dark"] .topbar{background:rgba
 html[data-theme="dark"] .brand{color:var(--ink)}
 html[data-theme="dark"] .brand small,html[data-theme="dark"] .side-link{color:var(--muted)}
 html[data-theme="dark"] .brand-mark img{filter:brightness(.88)}
+html[data-theme="dark"] .heading-stamp{background:var(--surface);border-color:var(--line-dark);color:var(--muted)}
 html[data-theme="dark"] .side-link:hover,html[data-theme="dark"] .side-link:focus-visible{background:#2b2c32!important;color:var(--ink)}
 html[data-theme="dark"] .side-link.active{background:#292b32!important;color:var(--ink)}
 html[data-theme="dark"] .workspace-grid,html[data-theme="dark"] .prompt-layout,html[data-theme="dark"] .vibehub-layout,html[data-theme="dark"] .input-panel,html[data-theme="dark"] .preview-panel,html[data-theme="dark"] .prompt-options,html[data-theme="dark"] .prompt-output,html[data-theme="dark"] .analysis-result,html[data-theme="dark"] .custom-assets-panel,html[data-theme="dark"] .design-system-panel,html[data-theme="dark"] .guide-start,html[data-theme="dark"] .guide-learning,html[data-theme="dark"] .guide-team,html[data-theme="dark"] .guide-step-card,html[data-theme="dark"] .guide-faq-list,html[data-theme="dark"] .skill-sources,html[data-theme="dark"] .crawl-evidence,html[data-theme="dark"] .vibe-guide,html[data-theme="dark"] .vibe-terms,html[data-theme="dark"] .term-lookup-panel,html[data-theme="dark"] .knowledge-card,html[data-theme="dark"] .module-card{background:var(--surface);border-color:var(--line-dark);color:var(--ink)}
