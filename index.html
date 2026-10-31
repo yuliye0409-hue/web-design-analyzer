@@ -9,8 +9,8 @@
   <link rel="icon" type="image/x-icon" sizes="64x64" href="./favicon.ico?v=3">
   <link rel="icon" type="image/svg+xml" sizes="any" href="./favicon.svg?v=3">
   <link rel="apple-touch-icon" href="./favicon.svg?v=3">
-  <link rel="stylesheet" href="./styles.css?v=apple-design-preview-9">
-  <script type="module" src="./app.js?v=url-autofill-2"></script>
+  <link rel="stylesheet" href="./styles.css?v=nav-preferences-1">
+  <script type="module" src="./app.js?v=nav-preferences-1"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">跳转到工作区</a>
@@ -27,6 +27,16 @@
         <a class="side-link" href="#vibehub" data-panel="vibehub"><span class="nav-icon">⌘</span> 设计知识 <kbd>03</kbd></a>
         <a class="side-link" href="#guide" data-panel="guide"><span class="nav-icon">☷</span> 使用 SOP <kbd>04</kbd></a>
       </nav>
+      <div class="nav-controls" role="group" aria-label="界面设置">
+        <button class="nav-tool" type="button" data-theme-toggle aria-label="切换深色模式" title="切换深色模式"><span data-theme-icon aria-hidden="true">☾</span></button>
+        <button class="nav-tool" type="button" data-accent-toggle aria-label="切换主题色" title="切换主题色" aria-expanded="false" aria-controls="accent-menu"><span class="accent-tool-icon" aria-hidden="true">◉</span></button>
+        <button class="nav-tool language-tool" type="button" data-language-toggle aria-label="Switch to English" title="Switch to English">EN</button>
+        <div class="accent-menu" id="accent-menu" role="group" aria-label="主题色" hidden>
+          <button class="accent-choice" type="button" data-accent="blue" aria-label="蓝色主题" title="蓝色主题"><span class="swatch swatch-blue"></span></button>
+          <button class="accent-choice" type="button" data-accent="teal" aria-label="青绿色主题" title="青绿色主题"><span class="swatch swatch-teal"></span></button>
+          <button class="accent-choice" type="button" data-accent="coral" aria-label="珊瑚色主题" title="珊瑚色主题"><span class="swatch swatch-coral"></span></button>
+        </div>
+      </div>
       <div class="side-caption side-caption-lower">最近分析</div>
       <button class="recent-item" type="button" data-load-demo><span class="recent-thumb"><span class="recent-placeholder">键</span></span><span><strong>键鼠品牌作品集</strong><small>内置示例 · 可直接载入</small></span><span class="recent-arrow">↗</span></button>
       <div class="sidebar-bottom">

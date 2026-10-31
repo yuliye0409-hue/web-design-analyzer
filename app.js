@@ -24,6 +24,39 @@ let assetDbPromise;
 let assetsReadyResolve;
 const assetsReady = new Promise(resolve => { assetsReadyResolve = resolve; });
 const assetUrls = new Map();
+const UI_PREFERENCES_KEY = 'web-design-ui-preferences-v1';
+const UI_TRANSLATIONS = new Map([
+  ['网页分析','Web Analysis'],['提示词工作台','Prompt Workbench'],['设计知识','Design Knowledge'],['使用 SOP','User Guide'],
+  ['工作区','Workspace'],['本地自动保存','Local autosave'],['已自动保存','Saved locally'],['使用指南目录','Guide contents'],
+  ['独立分析工作区','Independent Analysis Workspace'],['从参考页面，','From reference pages,'],['到可执行设计。','to build-ready design.'],['把分析结果，','Turn analysis into'],['交给你的 Agent。','an actionable prompt.'],
+  ['选择交付方式，生成含页面模块、组件功能、交互状态和响应式要求的完整提示词。','Choose a delivery mode and generate a complete prompt with page sections, components, interaction states, and responsive requirements.'],
+  ['参考与目标','Reference & goals'],['参考网页网址','Reference URL'],['输入公开网址后，点击“生成结构分析”将实际打开并采集页面','Enter a public URL, then start an analysis to inspect the page.'],
+  ['独立分析工作区：逐模块记录版式风格、组件职责、动效交互与专业判断，再生成任意 AI Agent 都能执行的建站提示词。','Independent workspace: record layout, component roles, motion, interactions, and design judgment by module, then generate a build prompt any AI agent can execute.'],
+  ['要搭建的网页类型','Website type'],['目标用户','Target audience'],['页面主要目标','Primary page goal'],['整体视觉与动效观察','Visual & motion notes'],['期望色调','Preferred palette'],['设备适配','Responsive targets'],
+  ['实际分析参考网页','Analyze reference page'],['网页实采暂不可用','Live analysis unavailable'],['查看本机实采步骤','Local setup steps'],['关闭','Close'],['页面结构草图','Page structure map'],['载入示例','Load example'],
+  ['解析模式','Analysis mode'],['Agent 辅助网页检查','Agent-assisted inspection'],['适用范围','Suitable for'],['任意网页与搭建 Agent','Any website and coding agent'],['输出格式','Output'],['结构化分析 + 实施提示词','Structured analysis + build prompt'],
+  ['自定义素材与资料','Custom assets & materials'],['上传图片、简历和公司资料，或直接粘贴必须保留的信息；提示词会逐项盘点并按用途规划到网页模块。','Upload images, a resume, or company information, or paste required facts. The prompt will map each item to relevant website sections.'],
+  ['添加文件','Add files'],['个人简历 / 公司信息 / 品牌要求','Resume / company / brand requirements'],['可以粘贴 PDF、Word 等文件里的重要事实，避免 Agent 猜测补写','Paste important facts from PDF or Word files to prevent the agent from guessing.'],
+  ['尚未添加素材','No assets added'],['设计系统','Design system'],['浏览 GitHub','Browse GitHub'],['上游精选','Curated presets'],['加载 DESIGN.md','Load DESIGN.md'],['当前设计规范','Current design rules'],
+  ['交付方式','Delivery mode'],['分析并搭建','Analyze and build'],['Agent 先检查参考页，再生成分析并实现','Agent inspects the reference, then analyzes and implements.'],['按现有分析搭建','Build from analysis'],['直接按已编辑模块生成网页','Build from the edited modules.'],['只分析网页','Analyze only'],['输出拆解报告，不要求写代码','Create an analysis report without writing code.'],
+  ['目标 Agent','Target agent'],['技术栈或环境限制','Tech stack or environment constraints'],['其他必须遵守的要求','Additional requirements'],['加入 VibeHub 需求澄清约定','Include VibeHub requirement clarification'],['加入前端视觉设计技能','Include frontend design guidance'],['加入交互与质量检查技能','Include interaction and QA guidance'],['重新生成提示词','Regenerate prompt'],
+  ['Agent 建站提示词','Website build prompt for your agent'],['复制提示词','Copy prompt'],['等待生成分析','Waiting for analysis'],['提示词可编辑','Prompt is editable'],['保存到本机','Save locally'],['已复制到剪贴板','Copied to clipboard'],
+  ['快速开始','Quick start'],['完整流程','Full workflow'],['边做边学','Learn as you build'],['常见问题','FAQ'],['换电脑与协作','Work across devices'],
+  ['快速开始','Quick start'],['完整使用流程','Complete workflow'],['边做边学','Learn as you build'],['常见问题与边界','FAQ & limitations'],
+  ['浏览器会自动打开本机分析工作台完成实采','The browser opens the local analysis workbench for live inspection.'],
+  ['实际看到的内容及其目的','Observed content and purpose'],['视觉与排版','Visual design and typography'],['组件与信息层级','Components and information hierarchy'],['动效与交互','Motion and interactions'],['专业判断与落地建议','Design assessment and implementation notes'],
+  ['由参考网站决定','Based on reference website'],['黑白灰，简洁高级','Monochrome, clean and refined'],['明亮且有亲和力','Bright and approachable'],['克制的自然色','Muted natural colors'],['高对比科技感','High-contrast technology'],['自定义，写在观察中','Custom (describe in notes)'],
+  ['桌面与手机都适配','Desktop and mobile'],['优先桌面端','Desktop first'],['优先手机端','Mobile first'],['桌面、平板、手机完整适配','Desktop, tablet, and mobile'],
+  ['Apple · 摄影优先 / 极简','Apple · Photography-first / minimal'],['Claude · 温暖编辑风','Claude · Warm editorial'],['Vercel · 黑白技术风','Vercel · Monochrome technology'],
+  ['选择设计系统…','Choose a design system…'],['未选择；可以粘贴或编辑 Markdown','None selected; paste or edit Markdown'],['复制上手清单','Copy getting-started checklist'],
+  ['打开提示词工作台','Open Prompt Workbench'],['回到模块分析','Back to module analysis'],['去网页分析','Go to Web Analysis'],['继续：生成建站提示词','Continue: generate build prompt'],
+]);
+const UI_REVERSE_TRANSLATIONS = new Map([...UI_TRANSLATIONS].map(([zh,en])=>[en.trim(),zh.trim()]));
+const UI_THEME_COLORS = {
+  blue:{ accent:'#0066cc',label:{zh:'蓝色主题',en:'Blue theme'} },
+  teal:{ accent:'#16827a',label:{zh:'青绿色主题',en:'Teal theme'} },
+  coral:{ accent:'#c96c58',label:{zh:'珊瑚色主题',en:'Coral theme'} },
+};
 
 const initialModules = [
   { title: '导航与页头', purpose: '快速识别品牌并前往核心页面。', style:'横向结构、克制字号；记录标识与导航比例、吸顶高度和分隔方式。', components: '品牌标识、主导航、语言或主题入口、移动端菜单。', interaction: '当前页提示、菜单开合、吸顶、点击外部关闭和 Escape 键状态。', analysis:'这是全页定位锚点。导航项控制在可扫描范围，链接必须有真实目标并保留键盘焦点。' },
@@ -77,6 +110,123 @@ function notify(message) {
 }
 function esc(value) {
   return String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
+}
+function readUiPreferences() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(UI_PREFERENCES_KEY) || '{}');
+    return {
+      theme: saved.theme === 'dark' ? 'dark' : 'light',
+      accent: UI_THEME_COLORS[saved.accent] ? saved.accent : 'blue',
+      language: saved.language === 'en' ? 'en' : 'zh',
+    };
+  } catch {
+    return { theme:'light',accent:'blue',language:'zh' };
+  }
+}
+let uiPreferences = readUiPreferences();
+function saveUiPreferences() {
+  try { localStorage.setItem(UI_PREFERENCES_KEY,JSON.stringify(uiPreferences)); }
+  catch { /* Theme controls still work for this page when storage is unavailable. */ }
+}
+function translateUiValue(value,language) {
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  const translation = language === 'en' ? UI_TRANSLATIONS.get(trimmed) : UI_REVERSE_TRANSLATIONS.get(trimmed);
+  if (!translation) return value;
+  const start = value.indexOf(trimmed);
+  return `${value.slice(0,start)}${translation}${value.slice(start + trimmed.length)}`;
+}
+function translateUi(root=document.body) {
+  const walker = document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const skipped = 'input,textarea,script,style,code,pre,[contenteditable="true"],.prompt-editor,.design-md-editor,.module-fields,.asset-list,.term-list,.knowledge-card,.preview-canvas';
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.parentElement?.closest(skipped)) continue;
+    const translated = translateUiValue(node.nodeValue,uiPreferences.language);
+    if (translated !== node.nodeValue) node.nodeValue = translated;
+  }
+  const attributeNames = ['title','aria-label','aria-description','placeholder'];
+  root.querySelectorAll?.('*').forEach(element=>{
+    if (element.matches(skipped)) return;
+    for (const name of attributeNames) {
+      const value = element.getAttribute(name);
+      if (value) element.setAttribute(name,translateUiValue(value,uiPreferences.language));
+    }
+  });
+  document.documentElement.lang = uiPreferences.language === 'en' ? 'en' : 'zh-CN';
+  document.title = uiPreferences.language === 'en' ? 'Web Design Analyzer / Design Workbench' : '网页分析生成站 / 网页设计工作台';
+  const languageButton = $('[data-language-toggle]');
+  const switchLanguageLabel = uiPreferences.language === 'en' ? 'Switch to Chinese' : 'Switch to English';
+  languageButton.textContent = uiPreferences.language === 'en' ? '中文' : 'EN';
+  languageButton.setAttribute('aria-label',switchLanguageLabel);
+  languageButton.title = switchLanguageLabel;
+  const themeLabel = uiPreferences.language === 'en'
+    ? (uiPreferences.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode')
+    : (uiPreferences.theme === 'dark' ? '切换浅色模式' : '切换深色模式');
+  $('[data-theme-toggle]').setAttribute('aria-label',themeLabel);
+  $('[data-theme-toggle]').title = $('[data-theme-toggle]').getAttribute('aria-label');
+  $('[data-theme-icon]').textContent = uiPreferences.theme === 'dark' ? '☀' : '☾';
+  $('[data-accent-toggle]').setAttribute('aria-label',uiPreferences.language === 'en' ? 'Choose accent color' : '切换主题色');
+  $('[data-accent-toggle]').title = $('[data-accent-toggle]').getAttribute('aria-label');
+  $$('.accent-choice').forEach(button=>{
+    const label = UI_THEME_COLORS[button.dataset.accent].label[uiPreferences.language];
+    button.setAttribute('aria-label',label);
+    button.title = label;
+    button.setAttribute('aria-pressed',String(button.dataset.accent===uiPreferences.accent));
+  });
+  $('#accent-menu').setAttribute('aria-label',uiPreferences.language === 'en' ? 'Accent color' : '主题色');
+}
+function applyUiPreferences() {
+  document.documentElement.dataset.theme = uiPreferences.theme;
+  document.documentElement.dataset.accent = uiPreferences.accent;
+  document.querySelector('meta[name="theme-color"]').content = uiPreferences.theme === 'dark' ? '#17181b' : '#f5f5f7';
+  translateUi();
+}
+function initUiPreferences() {
+  applyUiPreferences();
+  const observer = new MutationObserver(records=>{
+    for (const record of records) {
+      if (record.type === 'characterData') translateUi(record.target.parentElement || document.body);
+      else record.addedNodes.forEach(node=>{if (node.nodeType===Node.ELEMENT_NODE) translateUi(node);});
+    }
+  });
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  $('[data-theme-toggle]').addEventListener('click',()=>{
+    uiPreferences.theme = uiPreferences.theme === 'dark' ? 'light' : 'dark';
+    applyUiPreferences();saveUiPreferences();
+  });
+  $('[data-language-toggle]').addEventListener('click',()=>{
+    uiPreferences.language = uiPreferences.language === 'en' ? 'zh' : 'en';
+    translateUi();saveUiPreferences();
+  });
+  const accentToggle = $('[data-accent-toggle]');
+  const accentMenu = $('#accent-menu');
+  accentToggle.addEventListener('click',()=>{
+    const open = accentMenu.hidden;
+    accentMenu.hidden = !open;
+    accentToggle.setAttribute('aria-expanded',String(open));
+  });
+  $$('.accent-choice').forEach(button=>button.addEventListener('click',()=>{
+    uiPreferences.accent = button.dataset.accent;
+    document.documentElement.dataset.accent = uiPreferences.accent;
+    $$('.accent-choice').forEach(choice=>choice.setAttribute('aria-pressed',String(choice===button)));
+    accentMenu.hidden = true;
+    accentToggle.setAttribute('aria-expanded','false');
+    saveUiPreferences();
+  }));
+  document.addEventListener('click',event=>{
+    if (!event.target.closest('.nav-controls') && !accentMenu.hidden) {
+      accentMenu.hidden = true;
+      accentToggle.setAttribute('aria-expanded','false');
+    }
+  });
+  document.addEventListener('keydown',event=>{
+    if (event.key === 'Escape' && !accentMenu.hidden) {
+      accentMenu.hidden = true;
+      accentToggle.setAttribute('aria-expanded','false');
+      accentToggle.focus();
+    }
+  });
 }
 function currentInputs() {
   const inputs = Object.fromEntries(new FormData(form).entries());
@@ -611,6 +761,7 @@ help.addEventListener('click',event => { if (event.target===help) help.close(); 
 $('.profile-button')?.addEventListener('click', () => notify('当前是本地工作区；草稿和素材保存在此浏览器，不会自动同步到其他电脑'));
 const panelFromHash = hash => hash === 'workspace' || hash === 'analysis' ? 'analysis' : hash;
 window.addEventListener('hashchange', () => { const panel=panelFromHash(location.hash.slice(1)); if (['analysis','prompt','vibehub','guide'].includes(panel)) navigate(panel); });
+initUiPreferences();
 restoreState();
 const handoff = new URLSearchParams(location.search);
 if (location.hostname === '127.0.0.1' && handoff.get('handoff') === '1' && handoff.get('url')) {
